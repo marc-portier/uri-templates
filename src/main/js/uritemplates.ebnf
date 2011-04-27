@@ -1,0 +1,40 @@
+
+"uri-templates syntax (draft 0.4)" {
+ 
+
+  template  = { literals | expression } .
+  
+  literals      = '%x21' | '%x23-24' | '%x26' | '%x28-3B' | '%x3D' | '%x3F-5B' | '%x5D-5F' | '%x61-7A' | '%x7E' | ucschar | iprivate | pct-encoded .
+
+  expression    = '{' [ operator ] variable_list '}' .
+
+  operator      = "+" | "." | "/" | ";" | "?" | op_reserve .
+
+  op_reserve    = "|" | "!" | "@" .
+
+  variable_list = varspec { ',' varspec } .
+
+  varspec       = varname [ modifier ] [ "=" default ] .
+
+  varname       = varchar {  varchar | "."  } .
+
+  varchar       = ALPHA | DIGIT | '_' | ucschar | iprivate | pct_encoded .
+
+  default       = { unreserved | pct_encoded} .
+
+  modifier      = explode | partial .
+
+  explode       = "*" | "+"  .
+
+  partial       = ( substring | remainder ) offset .
+
+  substring     = ":" .
+
+  remainder     = "^" .
+
+  offset        = [from_end] DIGIT { DIGIT } .
+
+  from_end      = "-" .
+
+
+} "See http://code.google.com/p/uri-templates/ for updates and work on the spec."

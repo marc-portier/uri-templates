@@ -1,0 +1,212 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+                    "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <script src="./js/jquery-1.5.2.min.js"></script>
+  <link rel="stylesheet" href="./qunit/qunit.css" type="text/css" media="screen" />
+  <script type="text/javascript" src="./qunit/qunit.js"></script>
+  <script type="text/javascript" src="../../main/js/uritemplates.js"></script>
+
+  <script>
+    $(document).ready( function() {
+    
+// pure parsing and object instantiation
+module("Uri template parsing");
+
+test("parse templates", function() {
+    var tees = [
+        "",
+        "{x}",
+        "{x.y}",
+        "{+x}",
+        "{+x*=help,y}",
+        "{x+}",
+        "{x:10}",
+        "{x^-3=def}",
+        "{a,b}",
+        "{+a,b}",
+        "{/a=yes,b=no}",
+        "{?a:-2,b*}",
+        "{.a,b}",
+        "{;a,b^4}",
+        "abc",
+        "a{b}c",
+        "{this}and{that}or{more}",
+        "half{open",
+        "half}close",
+        "more{normal}open{half{whole}",
+        "{whole}half}close{normal}more",
+        "more{normal}{en{clos}ed}{normal}more"
+    ];
+    var cnt = tees.length;
+
+    expect(cnt);
+    
+    for (var i = 0; i < cnt; i++) {
+        try {
+            var parsed = $.uritemplate(tees[i]);
+            var dump = QUnit.jsDump.parse(parsed);
+            ok (parsed != null, "completed parsing of '" + tees[i] + "' : " + dump);
+        } catch (err) {
+            var errStr = QUnit.jsDump.parse(err);
+            ok (false, "error in parsing of '" + tees[i] + "' : " + errStr);
+        }
+    }
+});
+
+function assertSet(set, data) {
+    
+    var count = 0;
+    for (pattern in set) {
+        count++
+    }
+    expect(count);
+    
+    for (pattern in set) {
+        var template = $.uritemplate(pattern);
+        var result = template.expand(data);
+        var expected = set[pattern];
+
+        equals(result, expected, "tested pattern: " + pattern);
+    }
+}
+
+module("Samples from the spec");
+test("page 5", function() {
+    var context = {"query": "mycelium", "number": 100}; // no "undef"
+    var testset = {
+        "http://www.example.com/foo{?query,number}": "http://www.example.com/foo?query=mycelium&number=100",
+        "http://www.example.com/foo{?undef,number}": "http://www.example.com/foo?number=100"
+    };
+    assertSet(testset, context);
+});
+
+test("table on pages 6-8", function() {
+    var context = {
+        "var"   : "value",
+        "hello" : "Hello World!",
+        "undef" : null, //explicit, but same as not mentioning it
+        "empty" : "",
+        "list"  : [ "val1", "val2", "val3" ],
+        "keys"  : {"key1": "val1", "key2": "val2"},
+        "path"  : "/foo/bar",
+        "x"     : 1024,
+        "y"     : 768
+    }
+
+
+
+    var testset = {
+    //  Simple expansion with comma-separated values
+        "{var}"           : "value",
+        "{hello}"          : "Hello%20World%21",
+        "{path}/here"     : "%2Ffoo%2Fbar/here",
+        "{x,y}"           : "1024,768",
+        "{var=default}"   : "value",
+        "{undef=default}" : "default",
+        "{list}"          : "val1,val2,val3",
+        "{list*}"         : "val1,val2,val3",
+        "{list+}"         : "list.val1,list.val2,list.val3",
+        "{keys}"          : "key1,val1,key2,val2",
+        "{keys*}"         : "key1,val1,key2,val2",
+        "{keys+}"         : "keys.key1,val1,keys.key2,val2",
+
+    // Reserved expansion with comma-separated values
+        "{+var}"         : "value",
+        "{+hello}"       : "Hello%20World!",
+        "{+path}/here"   : "/foo/bar/here",
+        "{+path,x}/here" : "/foo/bar,1024/here",
+        "{+path}{x}/here": "/foo/bar1024/here",
+        "{+empty}/here"  : "/here",
+        "{+undef}/here"  : "/here",
+        "{+list}"        : "val1,val2,val3",
+        "{+list*}"       : "val1,val2,val3",
+        "{+list+}"       : "list.val1,list.val2,list.val3",
+        "{+keys}"        : "key1,val1,key2,val2",
+        "{+keys*}"       : "key1,val1,key2,val2",
+        "{+keys+}"       : "keys.key1,val1,keys.key2,val2",
+
+    // Path-style parameters, semicolon-prefixed
+        "{;x,y}"       : ";x=1024;y=768",
+        "{;x,y,empty}" : ";x=1024;y=768;empty",
+        "{;x,y,undef}" : ";x=1024;y=768",
+        "{;list}"      : ";val1,val2,val3",
+        "{;list*}"     : ";val1;val2;val3",
+        "{;list+}"     : ";list=val1;list=val2;list=val3",
+        "{;keys}"      : ";key1,val1,key2,val2",
+        "{;keys*}"     : ";key1=val1;key2=val2",
+        "{;keys+}"     : ";keys.key1=val1;keys.key2=val2",
+        //added own
+        "{;undef}"     : "",
+
+
+    //  Form-style parameters, ampersand-separated
+        "{?x,y}"       : "?x=1024&y=768",
+        "{?x,y,empty}" : "?x=1024&y=768&empty=",
+        "{?x,y,undef}" : "?x=1024&y=768",
+        "{?list}"      : "?list=val1,val2,val3",
+        "{?list*}"     : "?val1&val2&val3",
+        "{?list+}"     : "?list=val1&list=val2&list=val3",
+        "{?keys}"      : "?keys=key1,val1,key2,val2",
+        "{?keys*}"     : "?key1=val1&key2=val2",
+        "{?keys+}"     : "?keys.key1=val1&keys.key2=val2",
+        //added own
+        "{?undef}"     : "",
+
+    //  Hierarchical path segments, slash-separated
+        "{/var}"       : "/value",
+        "{/var,empty}" : "/value/",
+        "{/var,undef}" : "/value",
+        "{/list}"      : "/val1,val2,val3",
+        "{/list*}"     : "/val1/val2/val3",
+        "{/list*,x}"   : "/val1/val2/val3/1024",
+        "{/list+}"     : "/list.val1/list.val2/list.val3",
+        "{/keys}"      : "/key1,val1,key2,val2",
+        "{/keys*}"     : "/key1/val1/key2/val2",
+        "{/keys+}"     : "/keys.key1/val1/keys.key2/val2",
+        //added own
+        "{/undef}"     : "",
+
+    //  Label expansion, dot-prefixed
+        "X{.var}"     : "X.value",
+        "X{.empty}"   : "X.",
+        "X{.undef}"   : "X",
+        "X{.list}"    : "X.val1,val2,val3",
+        "X{.list*}"   : "X.val1.val2.val3",
+        "X{.list*,x}" : "X.val1.val2.val3.1024",
+        "X{.list+}"   : "X.list.val1.list.val2.list.val3",
+        "X{.keys}"    : "X.key1,val1,key2,val2",
+        "X{.keys*}"   : "X.key1.val1.key2.val2",
+        "X{.keys+}"   : "X.keys.key1.val1.keys.key2.val2",
+        //added own
+        "{.undef}"     : ""
+    };
+    
+    assertSet(testset, context);
+});
+
+module("Test incompleteness");
+test("completion", function() {
+    ok( false, "more tests still need to be coded!" );
+    // half-open expresions no traling { and no closing }
+    // context-variables that are numbers
+    // context-variables that are functions!!!
+    // reserved operators should throw exceptions
+    // functional tests per operator
+    // standard included samples and tests
+    // strange char tests 
+});
+
+
+    });
+  </script>  
+</head>
+<body>
+  <h1 id="qunit-header">QUnit tests for uri-templates</h1>
+  <h2 id="qunit-banner"></h2>
+  <div id="qunit-testrunner-toolbar"></div>
+  <h2 id="qunit-userAgent"></h2>
+  <ol id="qunit-tests"></ol>
+  <div id="qunit-fixture">test markup, will be hidden</div>
+</body>
+</html>

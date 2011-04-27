@@ -1,0 +1,20 @@
+uri-templates.js uses a number of different other projects.
+You might want to check those (and their licenses) out
+
+[jquery/qunit]
+	* version
+	    Version: 1.5.2
+	    
+	* live used from downloaded from
+    	http://code.jquery.com/*
+
+	* by
+	    The jQuery Project. http://jquery.org/
+	    
+	* license (see http://jquery.org/license)
+	    MIT (http://www.opensource.org/licenses/mit-license.php) and 
+	    GPLv2 (http://www.opensource.org/licenses/gpl-2.0.php)
+	
+	* see docs at
+	    http://docs.jquery.com/Main_Page
+
