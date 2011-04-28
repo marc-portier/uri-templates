@@ -96,9 +96,7 @@ var OPS_SETTINGS = function(ops) {
         case '?' : return formParamSet;
         case '/' : return pathHierarchySet;
         case '.' : return labelSet;
-        default  : 
-            var unimpl = function() { throw "Unimplemented reserved operator: '"+ops+"'"; }; 
-            return {  encode: unimpl, assign: unimpl }; 
+        default  : throw "Unexpected operator: '"+ops+"'"; 
     }
 }
 
@@ -278,9 +276,10 @@ var match2varspec = function(m) {
 // Splitting varspecs in list
 var LISTSEP_RE=/,/;
 
-
 // How each template should look like
-var TEMPL_RE=/({([+.;?/|!@])?(([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(=([^{},]*))?(,([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(=([^{},]*))?)*)})/g;
+// Note: reserved operators: |!@ are left out of the regexp in order to make those templates degrade into literals 
+// (as expected by the spec - see tests.html section "page 11")
+var TEMPL_RE=/({([+.;?/])?(([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(=([^{},]*))?(,([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(=([^{},]*))?)*)})/g;
 
 var match2expression = function(m) {
     var expr = m[0];
