@@ -45,8 +45,7 @@ test("parse templates", function() {
     for (var i = 0; i < cnt; i++) {
         try {
             var parsed = $.uritemplate(tees[i]);
-            var dump = QUnit.jsDump.parse(parsed);
-            ok (parsed != null, "completed parsing of '" + tees[i] + "' : " + dump);
+            ok (parsed != null, "completed parsing of '" + tees[i] + "'");
         } catch (err) {
             var errStr = QUnit.jsDump.parse(err);
             ok (false, "error in parsing of '" + tees[i] + "' : " + errStr);
@@ -188,13 +187,10 @@ test("table on pages 6-8", function() {
 module("Test incompleteness");
 test("completion", function() {
     ok( false, "more tests still need to be coded!" );
-    // half-open expresions no traling { and no closing }
-    // context-variables that are numbers
     // context-variables that are functions!!!
-    // reserved operators should throw exceptions
-    // functional tests per operator
-    // standard included samples and tests
-    // strange char tests 
+    // test that using reserved operators throw exceptions @ expand OR @ parse? (fail fast?)
+    // functional tests per operators, showing typical use cases
+    // testing strange chars that need %encoding
 });
 
 

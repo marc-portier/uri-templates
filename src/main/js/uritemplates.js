@@ -33,17 +33,16 @@ based on spec retrieved from http://tools.ietf.org/html/draft-gregorio-uritempla
 //-----------------------------------various template syntax features & settings
 var simpleSet = { prefix : "", join : ",", 
     encode : function(val) {
-        //TODO investigate what other chars need escaping
+        //TODO investigate what other chars need extra escaping
         return encodeURIComponent(val).replace(/[!]/g, function(s) {return escape(s)} );
     },
     lblval : function(lbl, val, expl, c) {
         c = c || ',';
-        return expl ? (lbl ? lbl + c + val : val) : val;
+        return (expl && lbl) ? lbl + c + val : val;
     }
 };
 var reservedSet = { prefix : "", join : ",", 
     encode : function(val) {
-        //TODO investigate what other chars need escaping
         return encodeURI(val);
     },
     lblval : function(lbl, val, expl, c) {
@@ -51,12 +50,54 @@ var reservedSet = { prefix : "", join : ",",
         return expl ? (lbl ? lbl + c + val : val) : val;
     }
 };
+var pathParamSet = { prefix : ";", join : ";", 
+    encode : function(val) {
+        return encodeURI(val);
+    },
+    lblval : function(lbl, val, expl, c) {
+        var c = '=';
+        return lbl ? ( val && val.length > 0 ? lbl + c + val : lbl) : val;
+    }
+};
+var formParamSet = { prefix : "?", join : "&", 
+    encode : function(val) {
+        return encodeURI(val);
+    },
+    lblval : function(lbl, val, expl, c) {
+        var c = '=';
+        return lbl ? lbl + c + val : val;
+    }
+};
+var pathHierarchySet = { prefix : "/", join : "/", 
+    encode : function(val) {
+        return encodeURI(val);
+    },
+    lblval : function(lbl, val, expl, c) {
+        c = c || '/';
+        return (expl && lbl) ? ( val && val.length > 0 ? lbl + c + val : lbl) : val;
+    }
+};
+var labelSet = { prefix : ".", join : ".", 
+    encode : function(val) {
+        return encodeURI(val);
+    },
+    lblval : function(lbl, val, expl, c) {
+        c = c || '.';
+        return (expl && lbl) ? ( val && val.length > 0 ? lbl + c + val : lbl) : val;
+    }
+};
+
+
 var OPS_SETTINGS = function(ops) {
     switch(ops) {
         case ''  : return simpleSet; 
         case '+' : return reservedSet; 
+        case ';' : return pathParamSet;
+        case '?' : return formParamSet;
+        case '/' : return pathHierarchySet;
+        case '.' : return labelSet;
         default  : 
-            var unimpl = function() { throw "Unimplemented reserved expansion-operator: '"+ops+"'."; }; 
+            var unimpl = function() { throw "Unimplemented reserved operator: '"+ops+"'"; }; 
             return {  encode: unimpl, assign: unimpl }; 
     }
 }
@@ -125,7 +166,7 @@ Expression.prototype.expand = function(context) {
         var varspec = this.vars[i];
         varspec.iterate(context, opss.encode, function(key, val, explodes, del) {
             var segm = opss.lblval(key, val, explodes, del);
-            if (segm) {
+            if (segm != null) {
                 res += join + segm;
                 join = opss.join;
             }
