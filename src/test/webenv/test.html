@@ -343,6 +343,42 @@ test("page 15-17 on defaults", function() {
 });
 
 
+
+
+test("page 21 on simple expansion", function() {
+    var context = {
+        "foo"    : "fred"
+    };
+
+    var testset = {
+        "{foo}"       : "fred",
+        "{foo,foo}"   : "fred,fred",
+        "{bar,foo}"   : "fred",
+        "{bar=wilma}" : "wilma"
+    };
+    
+    assertSet(testset, context);
+});
+
+
+test("page 21 on reserved expansion", function() {
+    var context = {
+        "foo"    : "That's right!",
+        "base"   : "http://example.com/home/"
+    };
+
+    var testset = {
+        "{foo}"         : "That%27s%20right%21",
+        "{+foo}"        : "That%27s%20right!",
+        "{base}index"   : "http%3A%2F%2Fexample.com%2Fhome%2Findex",
+        "{+base}index"  : "http://example.com/home/index"
+    };
+    
+    assertSet(testset, context);
+});
+
+
+
 module("Test incompleteness");
 test("completion", function() {
     ok( false, "more tests still need to be coded!" );
