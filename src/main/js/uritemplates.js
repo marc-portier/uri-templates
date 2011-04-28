@@ -200,7 +200,6 @@ function VarSpec (name, expl, part, nums, defs) {
 
 VarSpec.prototype.iterate = function(context, encoder, adder) {
     var val = context[this.name];
-    if (val == null) val =  this.defs;
     
     if ($.isFunction(val))
         val = val(context);
@@ -212,11 +211,30 @@ VarSpec.prototype.iterate = function(context, encoder, adder) {
     -- 
     this suggests we push the evaluated function value back into the (cloned) context ?
     */
+
+    var isArr = false;
+    var isObj = false;
+    var isUndef = false;  //note: "" is empty but not undef
+    var fallback = false;
+    
+    if (val != null) {
+        isArr = (val.constructor === Array);
+        isObj = (val.constructor === Object);
+    } 
+    isUndef = (val == null || (isArr && val.length == 0) || (isObj && $.isEmptyObject(val)));
+    var wasUndef = isUndef; // we remember this fact
+    
+    if (isUndef) { // fallback to default from varspec (sure to be a string value, but possibly undef/null)
+        val = this.defs;
+        isUndef = (val == null);
+    }
+
+    if (isUndef) return; // ignore empty values 
     
     if (!this.explodes) { // no exploding: wrap values into string
         var joined = "";
         var join = "";
-        if (val && val.constructor === Array) {
+        if (isArr && !wasUndef) {
             var cnt = val.length;
             for (var i=0; i<cnt; i++) {
                 if (val[i] != null) {
@@ -224,7 +242,7 @@ VarSpec.prototype.iterate = function(context, encoder, adder) {
                     join = ",";
                 }
             }
-        } else if (val && val.constructor === Object) {
+        } else if (isObj && !wasUndef) {
             for (k in val) {
                 if (val[k] != null) {
                     joined += join + k + ',' + encoder(val[k]);
@@ -241,17 +259,25 @@ VarSpec.prototype.iterate = function(context, encoder, adder) {
             // (odd for from-end logic maybe) or else have some way of counting %HH as single chars
             adder(this.name, this.partVal(joined));
         }
-    } else if (val == null || val.length == 0 ) {
-        //ignore - don't add anything
-    } else if (val.constructor === Array) {
-        var cnt = val.length;
+
+    // below cases are all exploding:
+    } else if (isArr) {
         var lbl = this.explLbl(this.name);
-        for (var i=0; i<cnt; i++) {
-            adder(lbl, encoder(val[i]), true, '.' );
+        if (wasUndef) {
+            adder(lbl, encoder(val), true, '.' );
+        } else {
+            var cnt = val.length;
+            for (var i=0; i<cnt; i++) {
+                adder(lbl, encoder(val[i]), true, '.' );
+            }
         }
-    } else if (val.constructor === Object) {
-        for (k in val) {
-            adder(this.explLbl(this.name, k),  encoder(val[k]) , true);
+    } else if (isObj) {
+        if (wasUndef) { // we need to fake objecty behaviour on the fallback value
+            adder(this.explLbl(this.name),  encoder(val) , true, '.');
+        } else {
+            for (k in val) {
+                adder(this.explLbl(this.name, k),  encoder(val[k]) , true);
+            }
         }
     } else { // explode-requested, but single value
         adder(this.explLbl(this.name), encoder(val));
@@ -273,13 +299,14 @@ var match2varspec = function(m) {
 };
 
 
-// Splitting varspecs in list
+// Splitting varspecs in list with:
 var LISTSEP_RE=/,/;
 
 // How each template should look like
+var TEMPL_RE=/({([+.;?/])?(([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(=([^{},]*))?(,([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(=([^{},]*))?)*)})/g;
 // Note: reserved operators: |!@ are left out of the regexp in order to make those templates degrade into literals 
 // (as expected by the spec - see tests.html section "page 11")
-var TEMPL_RE=/({([+.;?/])?(([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(=([^{},]*))?(,([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(=([^{},]*))?)*)})/g;
+
 
 var match2expression = function(m) {
     var expr = m[0];

@@ -223,7 +223,7 @@ test("page 13", function() {
 
 
 
-test("page 15 partial sample", function() {
+test("page 15 on partial modifier", function() {
     var context = {
         "var"    : "value",
         "name"   : [ "Fred", "Wilma", "Pebbles" ]
@@ -244,6 +244,103 @@ test("page 15 partial sample", function() {
 });
 
 
+
+test("page 15-17 on defaults", function() {
+    var context = {
+        "var"        : "value",
+        "empty"      : "",
+        "undef"      : null,
+        "name"       : [ "Fred", "Wilma", "Pebbles" ],
+        "favs"       : {"color": "red", "volume": "high"},
+        "empty_list" : [],
+        "empty_keys" : {}
+    };
+
+    var testset = {
+        "{var=default}"       : "value",
+        "{undef=default}"     : "default",
+        "x{empty}y"           : "xy",
+        "x{empty=_}y"         : "xy",
+        "x{undef}y"           : "xy",
+        "x{undef=_}y"         : "x_y",
+        "x{empty_list}y"      : "xy",
+        "x{empty_list=_}y"    : "xy",
+        "x{empty_list*}y"     : "xy",
+        "x{empty_list*=_}y"   : "x_y",
+        "x{empty_list+}y"     : "xy",
+        "x{empty_list+=_}y"   : "xempty_list._y",
+        "x{empty_keys}y"      : "xy",
+        "x{empty_keys=_}y"    : "xy",
+        "x{empty_keys*}y"     : "xy",
+        "x{empty_keys*=_}y"   : "x_y",
+        "x{empty_keys+}y"     : "xy",
+        "x{empty_keys+=_}y"   : "xempty_keys._y",
+        "x{?name=none}"       : "x?name=Fred,Wilma,Pebbles",
+        "x{?favs=none}"       : "x?favs=color,red,volume,high",
+        "x{?favs*=none}"      : "x?color=red&volume=high",
+        "x{?favs+=none}"      : "x?favs.color=red&favs.volume=high",
+        "x{?undef}"           : "x",
+        "x{?undef=none}"      : "x?undef=none",
+        "x{?empty}"           : "x?empty=",
+        "x{?empty=none}"      : "x?empty=",
+        "x{?empty_list}"      : "x",
+        "x{?empty_list=none}" : "x?empty_list=none",
+        "x{?empty_list*}"     : "x",
+        "x{?empty_list*=none}": "x?none",
+        "x{?empty_list+}"     : "x",
+        "x{?empty_list+=none}": "x?empty_list.none",
+        "x{?empty_keys}"      : "x",
+        "x{?empty_keys=none}" : "x?empty_keys=none",
+        "x{?empty_keys*}"     : "x",
+        "x{?empty_keys*=none}": "x?none",
+        "x{?empty_keys+}"     : "x",
+        "x{?empty_keys+=none}": "x?empty_keys.none",
+        "x{;name=none}"       : "x;name=Fred,Wilma,Pebbles",
+        "x{;favs=none}"       : "x;favs=color,red,volume,high",
+        "x{;favs*=none}"      : "x;color=red;volume=high",
+        "x{;favs+=none}"      : "x;favs.color=red;favs.volume=high",
+        "x{;undef}"           : "x",
+        "x{;undef=none}"      : "x;undef=none",
+        "x{;empty}"           : "x;empty",
+        "x{;empty=none}"      : "x;empty",
+        "x{;empty_list}"      : "x",
+        "x{;empty_list=none}" : "x;empty_list=none",
+        "x{;empty_list*}"     : "x",
+        "x{;empty_list*=none}": "x;none",
+        "x{;empty_list+}"     : "x",
+        "x{;empty_list+=none}": "x;empty_list.none",
+        "x{;empty_keys}"      : "x",
+        "x{;empty_keys=none}" : "x;empty_keys=none",
+        "x{;empty_keys*}"     : "x",
+        "x{;empty_keys*=none}": "x;none",
+        "x{;empty_keys+}"     : "x",
+        "x{;empty_keys+=none}": "x;empty_keys.none",
+        "x{/name=none}"       : "x/Fred,Wilma,Pebbles",
+        "x{/name*=none}"      : "x/Fred/Wilma/Pebbles",
+        "x{/name+=none}"      : "x/name.Fred/name.Wilma/name.Pebbles",
+        "x{/favs=none}"       : "x/color,red,volume,high",
+        "x{/favs*=none}"      : "x/color/red/volume/high",
+        "x{/favs+=none}"      : "x/favs.color/red/favs.volume/high",
+        "x{/undef}"           : "x",
+        "x{/undef=none}"      : "x/none",
+        "x{/empty}"           : "x/",
+        "x{/empty=none}"      : "x/",
+        "x{/empty_list}"      : "x",
+        "x{/empty_list=none}" : "x/none",
+        "x{/empty_list*}"     : "x",
+        "x{/empty_list*=none}": "x/none",
+        "x{/empty_list+}"     : "x",
+        "x{/empty_list+=none}": "x/empty_list.none",
+        "x{/empty_keys}"      : "x",
+        "x{/empty_keys=none}" : "x/none",
+        "x{/empty_keys*}"     : "x",
+        "x{/empty_keys*=none}": "x/none",
+        "x{/empty_keys+}"     : "x",
+        "x{/empty_keys+=none}": "x/empty_keys.none"
+    };
+    
+    assertSet(testset, context);
+});
 
 
 module("Test incompleteness");
