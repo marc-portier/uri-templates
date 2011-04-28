@@ -184,13 +184,76 @@ test("table on pages 6-8", function() {
     assertSet(testset, context);
 });
 
+
+test("page 11 on reserved operators", function() {
+    /*
+    from page 11: 
+    The operator characters pipe ("|"), exclamation ("!"), and at-sign("@") are reserved for future extensions.
+    A processor that unexpectedly encounters such an extension operator SHOULD pass the
+    expression through unexpanded and MAY also indicate a warning to the invoking application.
+    */
+    var context = {
+        "var" : "value"
+    };
+
+    var testset = {
+        "{@var}"          : "{@var}",
+        "{|var}"          : "{|var}",
+        "{!var}"          : "{!var}"
+    };
+    
+    assertSet(testset, context);
+});
+
+
+test("page 13", function() {
+    var context = {
+        "address"   : {"city": "Newport Beach", "state": "CA"},
+        "from"      : {"zipcode": 92660}, 
+        "to"        : {"zipcode": 90210}, 
+    };
+
+    var testset = {
+        "/mapper{?address*}"       : "/mapper?city=Newport%20Beach&state=CA",
+        "/directions{?from+,to+}"  : "/directions?from.zipcode=92660&to.zipcode=90210"
+    };
+    
+    assertSet(testset, context);
+});
+
+
+
+test("page 15 partial sample", function() {
+    var context = {
+        "var"    : "value",
+        "name"   : [ "Fred", "Wilma", "Pebbles" ]
+    };
+
+    var testset = {
+        "{var}"     : "value",
+        "{var:20}"  : "value",
+        "{var:3}"   : "val",
+        "{var^3}"   : "ue",
+        "{var:-3}"  : "lue",
+        "{var^-3}"  : "va",
+        "{?name}"   : "?name=Fred,Wilma,Pebbles",
+        "{?name:1}" : "?name=F"
+    };
+    
+    assertSet(testset, context);
+});
+
+
+
+
 module("Test incompleteness");
 test("completion", function() {
     ok( false, "more tests still need to be coded!" );
     // context-variables that are functions!!!
     // test that using reserved operators throw exceptions @ expand OR @ parse? (fail fast?)
     // functional tests per operators, showing typical use cases
-    // testing strange chars that need %encoding
+    // testing strange chars that need %encoding >> special care for partial stuff: first trim, then encode not to have 
+    // tests with variables holding %HH sections (allowed)
 });
 
 

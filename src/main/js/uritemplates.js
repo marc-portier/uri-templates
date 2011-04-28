@@ -112,7 +112,7 @@ var fullLblModifier = function(name, k) {
     return name + (k ? "." + k : "");
 };
 
-var EXPLODELBLMODIFIER = function(expl) {
+var EXPLODELBL_MODIFIER = function(expl) {
     expl = expl || '';
     switch(expl) {
         case '' : return noneLblModifier; 
@@ -121,13 +121,30 @@ var EXPLODELBLMODIFIER = function(expl) {
     }
 };
 
-var PARTMODIFIER = function(part, nums) {
+var PARTVALUE_MODIFIER = function(part, nums) {
     part = part || '';
-    //TODO switch/build others
-    return null;
+    switch (part) {
+        case ':' : return function(v) { // substring
+            v = v.toString();
+            if (nums >= 0) {
+                return v.substring(0,nums);
+            } else {
+                return v.substring(v.length + nums);
+            }
+        };
+        case '^' : return function(v) { // remainder
+            v = v.toString();
+            if (nums >= 0) {
+                return v.substring(nums);
+            } else {
+                return v.substring(0, v.length + nums);
+            }
+        };
+        default  : return function(v) {
+            return v;
+        };
+    }
 };
-
-
 
 
 //---------------------------------------------- objects in use
@@ -177,8 +194,9 @@ Expression.prototype.expand = function(context) {
 
 function VarSpec (name, expl, part, nums, defs) {
     this.name = name;
-    this.explLbl = EXPLODELBLMODIFIER(expl);
+    this.explLbl = EXPLODELBL_MODIFIER(expl);
     this.explodes = !!expl; // make it boolean
+    this.partVal = PARTVALUE_MODIFIER(part, nums);
     this.defs = defs;
 };
 
@@ -188,6 +206,14 @@ VarSpec.prototype.iterate = function(context, encoder, adder) {
     
     if ($.isFunction(val))
         val = val(context);
+    /* TODO: from the spec: If a variable appears more than once in an expression or within
+    multiple expressions of a URI Template, the value of that variable
+    MUST remain static throughout the expansion process (i.e., the
+    variable must have the same value for the purpose of calculating each
+    expansion).    
+    -- 
+    this suggests we push the evaluated function value back into the (cloned) context ?
+    */
     
     if (!this.explodes) { // no exploding: wrap values into string
         var joined = "";
@@ -208,11 +234,15 @@ VarSpec.prototype.iterate = function(context, encoder, adder) {
                 }
             }
         } else {
-            joined = val == null ? null : encoder(val);
+            joined = (val == null) ? null : encoder(val);
         }       
         
-        if (joined != null) 
-            adder(this.name, joined);
+        if (joined != null) {
+            //TODO redo this so the partial modifier can work on unescaped values!
+            // one idea is to pass the encoder function down to the partVal function and let it join & encode after trimming 
+            // (odd for from-end logic maybe) or else have some way of counting %HH as single chars
+            adder(this.name, this.partVal(joined));
+        }
     } else if (val == null || val.length == 0 ) {
         //ignore - don't add anything
     } else if (val.constructor === Array) {
@@ -238,7 +268,7 @@ var match2varspec = function(m) {
     var name = m[1];
     var expl = m[3];
     var part = m[4];
-    var nums = m[5];
+    var nums = parseInt(m[5]);
     var defs = m[7];
     
     return new VarSpec(name, expl, part, nums, defs);
