@@ -135,8 +135,6 @@ test("table on pages 6-8", function() {
         "{;keys}"      : ";key1,val1,key2,val2",
         "{;keys*}"     : ";key1=val1;key2=val2",
         "{;keys+}"     : ";keys.key1=val1;keys.key2=val2",
-        //added own
-        "{;undef}"     : "",
 
 
     //  Form-style parameters, ampersand-separated
@@ -149,8 +147,6 @@ test("table on pages 6-8", function() {
         "{?keys}"      : "?keys=key1,val1,key2,val2",
         "{?keys*}"     : "?key1=val1&key2=val2",
         "{?keys+}"     : "?keys.key1=val1&keys.key2=val2",
-        //added own
-        "{?undef}"     : "",
 
     //  Hierarchical path segments, slash-separated
         "{/var}"       : "/value",
@@ -163,8 +159,6 @@ test("table on pages 6-8", function() {
         "{/keys}"      : "/key1,val1,key2,val2",
         "{/keys*}"     : "/key1/val1/key2/val2",
         "{/keys+}"     : "/keys.key1/val1/keys.key2/val2",
-        //added own
-        "{/undef}"     : "",
 
     //  Label expansion, dot-prefixed
         "X{.var}"     : "X.value",
@@ -177,8 +171,6 @@ test("table on pages 6-8", function() {
         "X{.keys}"    : "X.key1,val1,key2,val2",
         "X{.keys*}"   : "X.key1.val1.key2.val2",
         "X{.keys+}"   : "X.keys.key1.val1.keys.key2.val2",
-        //added own
-        "{.undef}"     : ""
     };
     
     assertSet(testset, context);
@@ -336,7 +328,9 @@ test("page 15-17 on defaults", function() {
         "x{/empty_keys*}"     : "x",
         "x{/empty_keys*=none}": "x/none",
         "x{/empty_keys+}"     : "x",
-        "x{/empty_keys+=none}": "x/empty_keys.none"
+        "x{/empty_keys+=none}": "x/empty_keys.none",
+        //added own - cases for . operator missing in spec?
+        "x{.undef}"           : "x"
     };
     
     assertSet(testset, context);
@@ -377,18 +371,76 @@ test("page 21 on reserved expansion", function() {
     assertSet(testset, context);
 });
 
-
-
-module("Test incompleteness");
-test("completion", function() {
-    ok( false, "more tests still need to be coded!" );
+module("Extra: js implementation features");
     // context-variables that are functions!!!
-    // test that using reserved operators throw exceptions @ expand OR @ parse? (fail fast?)
-    // functional tests per operators, showing typical use cases
-    // testing strange chars that need %encoding >> special care for partial stuff: first trim, then encode not to have 
-    // tests with variables holding %HH sections (allowed)
+test("evaluate functions from context.", function() {
+    var cnt = 0;
+    var context = {
+        "fn"        : function() {return cnt++;}
+    };
+
+    var testset = {
+        "{fn}"         : "0",
+        "{fn},{fn}"    : "1,1"
+    };
+    
+    assertSet(testset, context);
 });
 
+test("dereference nesting from context.", function() {
+    var context = {
+        "a.b"       : "value @ a.b",
+        "x"         : { "y": "value @ y via x"}
+    }
+
+    var testset = {
+        "{a.b}"       : "value @ a.b",
+        "{x.y}"       : "value @ y via x"
+    };
+    
+    assertSet(testset, context);
+});
+
+module("Extra: edge cases");
+test("trimming escaped sequences", function() {
+    var context = {
+        "string"       : "!!!!!",
+        "list"         : ["!","!","!","!","!"]
+    }
+
+    var testset = {
+        "{string:1}"   : "%21",
+        "{string:2}"   : "%21%21",
+        "{string:3}"   : "%21%21%21",
+        "{string:-3}"  : "%21%21%21",
+        "{string:-2}"  : "%21%21",
+        "{string:-1}"  : "%21",
+        "{list:1}"     : "%21",
+        "{list:2}"     : "%21,",
+        "{list:3}"     : "%21,%21",
+        "{list:-3}"    : "%21,%21",
+        "{list:-2}"    : ",%21",
+        "{list:-1}"    : "%21",
+    };
+    
+    assertSet(testset, context);
+});
+
+
+test("%encoded context names", function() {
+
+    var context = {
+        "!":  "exclamation-mark",
+        "%21": "enocded exclamation-mark"
+    }
+
+    var testset = {
+        "{!}"   : "{!}",
+        "{%21}" : "exclamation_mark"
+    };
+    
+    assertSet(testset, context);
+});
 
     });
   </script>  
