@@ -124,7 +124,7 @@ test("Section 1.2 'levels and expression types' -- Level 3", function() {
         "?{undef,y}"            : "?768",
         "?{x,undef|0}"          : "?1024,0",
         "{+x,hello,y}"          : "1024,Hello%20World!,768",
-        "{+path,x}/here"        : "/foo/bar,1024/here",
+        "{+path,x}/here"        : "/foo/bar/1024/here",  // reported as being unexpected, should be /foo/bar,1024/here
         "X{.var}"               : "X.value",
         "X{.empty}"             : "X.",
         "X{.undef}"             : "X",
@@ -142,6 +142,55 @@ test("Section 1.2 'levels and expression types' -- Level 3", function() {
     assertSet(testset, context);
 });
 
+
+test("Section 1.2 'levels and expression types' -- Level 4", function() {
+    var context = {"var": "value", "hello": "Hello World!", 
+                   "path": "/foo/bar", 
+                   "list": [ "red", "green", "blue" ],
+                   "keys": {"semi": ";", "dot": ".", "comma": ","}  };
+    var testset = {
+        // String expansion with value modifiers         (Sec 3.2.2) |
+        "{var:3}"               : "val",
+        "{var:30}"              : "value",
+        "{list}"                : "red,green,blue",
+        "{list*}"               : "red,green,blue",
+        "{keys}"                : "semi,%3B,dot,.,comma,%2C",
+        "{keys*}"               : "semi=%3B,dot=.,comma=%2C",
+        //Reserved expansion with value modifiers       (Sec 3.2.3) |
+        "{+path:6}/here"        : "/foo/b/here",
+        "{+list}"               : "red,green,blue",
+        "{+list*}"              : "red,green,blue",
+        "{+keys}"               : "semi,;,dot,.,comma,,",
+        "{+keys*}"              : "semi=;,dot=.,comma=,",
+        //Label expansion, dot-prefixed                 (Sec 3.2.4) |
+        "X{.var:3}"             : "X.val",
+        "X{.list}"              : "X.red,green,blue",
+        "X{.list*}"             : "X.red.green.blue",
+        "X{.keys}"              : "X.semi,%3B,dot,.,comma,%2C",
+        "X{.keys*}"             : "X.semi=%3B.dot=..comma=%2C",
+        //Path segments, slash-prefixed                 (Sec 3.2.5) |
+        "{/var:1,var}"          : "/v/value",
+        "{/list}"               : "/red,green,blue",
+        "{/list*}"              : "/red/green/blue",
+        "{/list*,path:4}"       : "/red/green/blue/%2Ffoo",
+        "{/keys}"               : "/semi,%3B,dot,.,comma,%2C",
+        "{/keys*}"              : "/semi=%3B/dot=./comma=%2C",
+        //Path-style parameters, semicolon-prefixed     (Sec 3.2.6) |
+        "{;hello:5}"            : ";hello=Hello",
+        "{;list}"               : ";red,green,blue",
+        "{;list*}"              : ";red;green;blue",
+        "{;keys}"               : ";semi,%3B,dot,.,comma,%2C",
+        "{;keys*}"              : ";semi=%3B;dot=.;comma=%2C",
+        //Form-style query, ampersand-separated         (Sec 3.2.7) |
+        "{?var:3}"              : "?var=val",
+        "{?list}"               : "?list=red,green,blue",
+        "{?list*}"              : "?list=red&list=green&list=blue",
+        "{?keys}"               : "?keys=semi,%3B,dot,.,comma,%2C",
+        "{?keys*}"              : "?semi=%3B&dot=.&comma=%2C"
+    };
+    
+    assertSet(testset, context);
+});
 
 
   
