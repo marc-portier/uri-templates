@@ -1,34 +1,11 @@
 /*
-UriTemapltes Draft 0.4  Parser written in JS/CC
-mpo@outerthought.org - 2011
-
-based on spec retrieved from http://tools.ietf.org/html/draft-gregorio-uritemplate-04
-
-"uri-templates syntax (draft 0.4)" {
-  template      = { literals | expression } .
-  literals      = '%x21' | '%x23-24' | '%x26' | '%x28-3B' | '%x3D' | '%x3F-5B' | '%x5D-5F' | '%x61-7A' | '%x7E' | ucschar | iprivate | pct-encoded .
-  expression    = '{' [ operator ] variable_list '}' .
-  operator      = "+" | "." | "/" | ";" | "?" | op_reserve .
-  op_reserve    = "|" | "!" | "@" .
-  variable_list = varspec { ',' varspec } .
-  varspec       = varname [ modifier ] [ "=" default ] .
-  varname       = varchar {  varchar | "."  } .
-  varchar       = ALPHA | DIGIT | '_' | ucschar | iprivate | pct_encoded .
-  default       = { unreserved | pct_encoded} .
-  modifier      = explode | partial .
-  explode       = "*" | "+"  .
-  partial       = ( substring | remainder ) offset .
-  substring     = ":" .
-  remainder     = "^" .
-  offset        = [from_end] DIGIT { DIGIT } .
-  from_end      = "-" .
-} "See http://code.google.com/p/uri-templates/ for updates and work on the spec."
+UriTemapltes Draft 0.5  Tempolate Processor
+(c) marc.portier@gmail.com - 2011
+Distributed under ALPv2 
 */
 
 ;
 (function($){
-
-
 
 //-----------------------------------various template syntax features & settings
 var simpleSet = { prefix : "", join : ",", 
@@ -286,7 +263,7 @@ VarSpec.prototype.iterate = function(context, encoder, adder) {
 
 //----------------------------------------------parsing logic
 // How each varspec should look like
-var VARSPEC_RE=/([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(=([^{},]*))?/;
+var VARSPEC_RE=/([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(\|([^{},]*))?/;
 
 var match2varspec = function(m) {
     var name = m[1];
@@ -303,7 +280,7 @@ var match2varspec = function(m) {
 var LISTSEP_RE=/,/;
 
 // How each template should look like
-var TEMPL_RE=/({([+.;?/])?(([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(=([^{},]*))?(,([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(=([^{},]*))?)*)})/g;
+var TEMPL_RE=/({([+.;?/])?(([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(\|([^{},]*))?(,([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(\|([^{},]*))?)*)})/g;
 // Note: reserved operators: |!@ are left out of the regexp in order to make those templates degrade into literals 
 // (as expected by the spec - see tests.html section "page 11")
 

@@ -19,13 +19,13 @@ test("parse templates", function() {
         "{x}",
         "{x.y}",
         "{+x}",
-        "{+x*=help,y}",
+        "{+x*|help,y}",
         "{x+}",
         "{x:10}",
-        "{x^-3=def}",
+        "{x^-3|def}",
         "{a,b}",
         "{+a,b}",
-        "{/a=yes,b=no}",
+        "{/a|yes,b|no}",
         "{?a:-2,b*}",
         "{.a,b}",
         "{;a,b^4}",
@@ -70,7 +70,83 @@ function assertSet(set, data) {
     }
 }
 
-module("Samples from the spec");
+module("Samples from draft 0.5");
+test("Section 1.1 'overview'", function() {
+    var context = {"username": "mpo", "term": "dog", "q": "cat", "lang": "en", "query": "mycelium", "number": 100};
+    var testset = {
+        "http://example.com/~{username}/"               : "http://example.com/~mpo/",
+        "http://example.com/dictionary/{term:1}/{term}" : "http://example.com/dictionary/d/dog",
+        "http://example.com/search{?q,lang}"            : "http://example.com/search?q=cat&lang=en",
+        "http://www.example.com/foo{?query,number}"     : "http://www.example.com/foo?query=mycelium&number=100",
+        "http://www.example.com/foo{?undef,number}"     : "http://www.example.com/foo?number=100",
+        "http://www.example.com/foo{?undef,nodef}"      : "http://www.example.com/foo"
+    };
+    assertSet(testset, context);
+});
+
+test("Section 1.2 'levels and expression types' -- Level 1", function() {
+    var context = {"var": "value", "hello": "Hello World!", "empty": "", "undef": null};
+    var testset = {
+        "{var}"                   : "value",
+        "{hello}"                 : "Hello%20World%21",
+        "O{empty}X"               : "OX",
+        "O{undef}X"               : "OX"
+    };
+    assertSet(testset, context);
+});
+
+test("Section 1.2 'levels and expression types' -- Level 2", function() {
+    var context = {"var": "value", "hello": "Hello World!", "empty": "", "undef": null, "path": "/foo/bar", "x": 1024};
+    var testset = {
+        "{var|default}"         : "value",
+        "O{empty|default}X"     : "OX",
+        "O{undef|default}X"     : "OdefaultX",
+        "{+var}"                : "value",
+        "{+hello}"              : "Hello%20World!",
+        "{+path}/here"          : "/foo/bar/here",
+        "here?ref={+path}"      : "here?ref=/foo/bar",
+        "up{+path}{x}/here"     : "up/foo/bar1024/here",
+        "up{+empty|/1}/here"    : "up/here",
+        "up{+undef|/1}/here"    : "up/1/here"
+    };
+    assertSet(testset, context);
+});
+
+
+test("Section 1.2 'levels and expression types' -- Level 3", function() {
+    var context = {"var": "value", "hello": "Hello World!", "empty": "", "undef": null, 
+                   "path": "/foo/bar", "x": 1024, "y": "768"};
+    var testset = {
+        "{x,y}"                 : "1024,768",
+        "{x,hello,y}"           : "1024,Hello%20World%21,768",
+        "?{x,empty}"            : "?1024,",
+        "?{x,undef}"            : "?1024",
+        "?{undef,y}"            : "?768",
+        "?{x,undef|0}"          : "?1024,0",
+        "{+x,hello,y}"          : "1024,Hello%20World!,768",
+        "{+path,x}/here"        : "/foo/bar,1024/here",
+        "X{.var}"               : "X.value",
+        "X{.empty}"             : "X.",
+        "X{.undef}"             : "X",
+        "{/var}"                : "/value",
+        "{/var,empty}"          : "/value/",
+        "{/var,undef}"          : "/value",
+        "{;x,y}"                : ";x=1024;y=768",
+        "{;x,y,empty}"          : ";x=1024;y=768;empty",
+        "{;x,y,undef}"          : ";x=1024;y=768",
+        "{?x,y}"                : "?x=1024&y=768",
+        "{?x,y,empty}"          : "?x=1024&y=768&empty=",
+        "{?x,y,undef}"          : "?x=1024&y=768"
+    };
+    
+    assertSet(testset, context);
+});
+
+
+
+  
+  
+module("Samples from draft 0.4");
 test("page 5", function() {
     var context = {"query": "mycelium", "number": 100}; // no "undef"
     var testset = {
@@ -101,8 +177,8 @@ test("table on pages 6-8", function() {
         "{hello}"          : "Hello%20World%21",
         "{path}/here"     : "%2Ffoo%2Fbar/here",
         "{x,y}"           : "1024,768",
-        "{var=default}"   : "value",
-        "{undef=default}" : "default",
+        "{var|default}"   : "value",
+        "{undef|default}" : "default",
         "{list}"          : "val1,val2,val3",
         "{list*}"         : "val1,val2,val3",
         "{list+}"         : "list.val1,list.val2,list.val3",
@@ -249,86 +325,86 @@ test("page 15-17 on defaults", function() {
     };
 
     var testset = {
-        "{var=default}"       : "value",
-        "{undef=default}"     : "default",
+        "{var|default}"       : "value",
+        "{undef|default}"     : "default",
         "x{empty}y"           : "xy",
-        "x{empty=_}y"         : "xy",
+        "x{empty|_}y"         : "xy",
         "x{undef}y"           : "xy",
-        "x{undef=_}y"         : "x_y",
+        "x{undef|_}y"         : "x_y",
         "x{empty_list}y"      : "xy",
-        "x{empty_list=_}y"    : "xy",
+        "x{empty_list|_}y"    : "xy",
         "x{empty_list*}y"     : "xy",
-        "x{empty_list*=_}y"   : "x_y",
+        "x{empty_list*|_}y"   : "x_y",
         "x{empty_list+}y"     : "xy",
-        "x{empty_list+=_}y"   : "xempty_list._y",
+        "x{empty_list+|_}y"   : "xempty_list._y",
         "x{empty_keys}y"      : "xy",
-        "x{empty_keys=_}y"    : "xy",
+        "x{empty_keys|_}y"    : "xy",
         "x{empty_keys*}y"     : "xy",
-        "x{empty_keys*=_}y"   : "x_y",
+        "x{empty_keys*|_}y"   : "x_y",
         "x{empty_keys+}y"     : "xy",
-        "x{empty_keys+=_}y"   : "xempty_keys._y",
-        "x{?name=none}"       : "x?name=Fred,Wilma,Pebbles",
-        "x{?favs=none}"       : "x?favs=color,red,volume,high",
-        "x{?favs*=none}"      : "x?color=red&volume=high",
-        "x{?favs+=none}"      : "x?favs.color=red&favs.volume=high",
+        "x{empty_keys+|_}y"   : "xempty_keys._y",
+        "x{?name|none}"       : "x?name=Fred,Wilma,Pebbles",
+        "x{?favs|none}"       : "x?favs=color,red,volume,high",
+        "x{?favs*|none}"      : "x?color=red&volume=high",
+        "x{?favs+|none}"      : "x?favs.color=red&favs.volume=high",
         "x{?undef}"           : "x",
-        "x{?undef=none}"      : "x?undef=none",
+        "x{?undef|none}"      : "x?undef=none",
         "x{?empty}"           : "x?empty=",
-        "x{?empty=none}"      : "x?empty=",
+        "x{?empty|none}"      : "x?empty=",
         "x{?empty_list}"      : "x",
-        "x{?empty_list=none}" : "x?empty_list=none",
+        "x{?empty_list|none}" : "x?empty_list=none",
         "x{?empty_list*}"     : "x",
-        "x{?empty_list*=none}": "x?none",
+        "x{?empty_list*|none}": "x?none",
         "x{?empty_list+}"     : "x",
-        "x{?empty_list+=none}": "x?empty_list.none",
+        "x{?empty_list+|none}": "x?empty_list.none",
         "x{?empty_keys}"      : "x",
-        "x{?empty_keys=none}" : "x?empty_keys=none",
+        "x{?empty_keys|none}" : "x?empty_keys=none",
         "x{?empty_keys*}"     : "x",
-        "x{?empty_keys*=none}": "x?none",
+        "x{?empty_keys*|none}": "x?none",
         "x{?empty_keys+}"     : "x",
-        "x{?empty_keys+=none}": "x?empty_keys.none",
-        "x{;name=none}"       : "x;name=Fred,Wilma,Pebbles",
-        "x{;favs=none}"       : "x;favs=color,red,volume,high",
-        "x{;favs*=none}"      : "x;color=red;volume=high",
-        "x{;favs+=none}"      : "x;favs.color=red;favs.volume=high",
+        "x{?empty_keys+|none}": "x?empty_keys.none",
+        "x{;name|none}"       : "x;name=Fred,Wilma,Pebbles",
+        "x{;favs|none}"       : "x;favs=color,red,volume,high",
+        "x{;favs*|none}"      : "x;color=red;volume=high",
+        "x{;favs+|none}"      : "x;favs.color=red;favs.volume=high",
         "x{;undef}"           : "x",
-        "x{;undef=none}"      : "x;undef=none",
+        "x{;undef|none}"      : "x;undef=none",
         "x{;empty}"           : "x;empty",
-        "x{;empty=none}"      : "x;empty",
+        "x{;empty|none}"      : "x;empty",
         "x{;empty_list}"      : "x",
-        "x{;empty_list=none}" : "x;empty_list=none",
+        "x{;empty_list|none}" : "x;empty_list=none",
         "x{;empty_list*}"     : "x",
-        "x{;empty_list*=none}": "x;none",
+        "x{;empty_list*|none}": "x;none",
         "x{;empty_list+}"     : "x",
-        "x{;empty_list+=none}": "x;empty_list.none",
+        "x{;empty_list+|none}": "x;empty_list.none",
         "x{;empty_keys}"      : "x",
-        "x{;empty_keys=none}" : "x;empty_keys=none",
+        "x{;empty_keys|none}" : "x;empty_keys=none",
         "x{;empty_keys*}"     : "x",
-        "x{;empty_keys*=none}": "x;none",
+        "x{;empty_keys*|none}": "x;none",
         "x{;empty_keys+}"     : "x",
-        "x{;empty_keys+=none}": "x;empty_keys.none",
-        "x{/name=none}"       : "x/Fred,Wilma,Pebbles",
-        "x{/name*=none}"      : "x/Fred/Wilma/Pebbles",
-        "x{/name+=none}"      : "x/name.Fred/name.Wilma/name.Pebbles",
-        "x{/favs=none}"       : "x/color,red,volume,high",
-        "x{/favs*=none}"      : "x/color/red/volume/high",
-        "x{/favs+=none}"      : "x/favs.color/red/favs.volume/high",
+        "x{;empty_keys+|none}": "x;empty_keys.none",
+        "x{/name|none}"       : "x/Fred,Wilma,Pebbles",
+        "x{/name*|none}"      : "x/Fred/Wilma/Pebbles",
+        "x{/name+|none}"      : "x/name.Fred/name.Wilma/name.Pebbles",
+        "x{/favs|none}"       : "x/color,red,volume,high",
+        "x{/favs*|none}"      : "x/color/red/volume/high",
+        "x{/favs+|none}"      : "x/favs.color/red/favs.volume/high",
         "x{/undef}"           : "x",
-        "x{/undef=none}"      : "x/none",
+        "x{/undef|none}"      : "x/none",
         "x{/empty}"           : "x/",
-        "x{/empty=none}"      : "x/",
+        "x{/empty|none}"      : "x/",
         "x{/empty_list}"      : "x",
-        "x{/empty_list=none}" : "x/none",
+        "x{/empty_list|none}" : "x/none",
         "x{/empty_list*}"     : "x",
-        "x{/empty_list*=none}": "x/none",
+        "x{/empty_list*|none}": "x/none",
         "x{/empty_list+}"     : "x",
-        "x{/empty_list+=none}": "x/empty_list.none",
+        "x{/empty_list+|none}": "x/empty_list.none",
         "x{/empty_keys}"      : "x",
-        "x{/empty_keys=none}" : "x/none",
+        "x{/empty_keys|none}" : "x/none",
         "x{/empty_keys*}"     : "x",
-        "x{/empty_keys*=none}": "x/none",
+        "x{/empty_keys*|none}": "x/none",
         "x{/empty_keys+}"     : "x",
-        "x{/empty_keys+=none}": "x/empty_keys.none",
+        "x{/empty_keys+|none}": "x/empty_keys.none",
         //added own - cases for . operator missing in spec?
         "x{.undef}"           : "x"
     };
@@ -348,7 +424,7 @@ test("page 21 on simple expansion", function() {
         "{foo}"       : "fred",
         "{foo,foo}"   : "fred,fred",
         "{bar,foo}"   : "fred",
-        "{bar=wilma}" : "wilma"
+        "{bar|wilma}" : "wilma"
     };
     
     assertSet(testset, context);
