@@ -7,59 +7,55 @@ Distributed under ALPv2
 ;
 (function($){
 
+function encodeNormal(val) {
+    //TODO investigate what other chars need extra escaping
+    return encodeURIComponent(val).replace(/[!/]/g, function(s) {return escape(s)} );
+}
+
+function encodeReserved(val) {
+    return encodeURI(val);
+}
+
 //-----------------------------------various template syntax features & settings
 var simpleSet = { prefix : "", join : ",", 
-    encode : function(val) {
-        //TODO investigate what other chars need extra escaping
-        return encodeURIComponent(val).replace(/[!]/g, function(s) {return escape(s)} );
-    },
+    encode : encodeNormal,
     lblval : function(lbl, val, expl, c) {
-        c = c || ',';
+        c = c || '=';
         return (expl && lbl) ? lbl + c + val : val;
     }
 };
 var reservedSet = { prefix : "", join : ",", 
-    encode : function(val) {
-        return encodeURI(val);
-    },
+    encode : encodeReserved,
     lblval : function(lbl, val, expl, c) {
-        c = c || ',';
+        c = c || '=';
         return expl ? (lbl ? lbl + c + val : val) : val;
     }
 };
 var pathParamSet = { prefix : ";", join : ";", 
-    encode : function(val) {
-        return encodeURI(val);
-    },
+    encode : encodeNormal,
     lblval : function(lbl, val, expl, c) {
         var c = '=';
         return lbl ? ( val && val.length > 0 ? lbl + c + val : lbl) : val;
     }
 };
 var formParamSet = { prefix : "?", join : "&", 
-    encode : function(val) {
-        return encodeURI(val);
-    },
+    encode : encodeReserved,
     lblval : function(lbl, val, expl, c) {
         var c = '=';
         return lbl ? lbl + c + val : val;
     }
 };
 var pathHierarchySet = { prefix : "/", join : "/", 
-    encode : function(val) {
-        return encodeURI(val);
-    },
+    encode : encodeReserved,
     lblval : function(lbl, val, expl, c) {
-        c = c || '/';
+        c = c || '=';
         return (expl && lbl) ? ( val && val.length > 0 ? lbl + c + val : lbl) : val;
     }
 };
 var labelSet = { prefix : ".", join : ".", 
-    encode : function(val) {
-        return encodeURI(val);
-    },
+    encode : encodeNormal,
     lblval : function(lbl, val, expl, c) {
-        c = c || '.';
+        c = c || '=';
         return (expl && lbl) ? ( val && val.length > 0 ? lbl + c + val : lbl) : val;
     }
 };
@@ -128,10 +124,11 @@ function UriTemplate(set) {
 };
 UriTemplate.prototype.expand = function(context) {
     context = context || {};
+    var cache = {};
     var res = "";
     var cnt = this.set.length;
     for (var i = 0; i<cnt; i++ ) {
-        res += this.set[i].expand(context);
+        res += this.set[i].expand(context, cache);
     }
     return res;
 }
@@ -149,14 +146,14 @@ function Expression(ops, vars ) {
     this.vars = vars;
 };
 
-Expression.prototype.expand = function(context) {
+Expression.prototype.expand = function(context, cache) {
     var opss = this.opss;
     var join = opss.prefix;
     var res = "";
     var cnt = this.vars.length;
     for (var i = 0 ; i< cnt; i++) {
         var varspec = this.vars[i];
-        varspec.iterate(context, opss.encode, function(key, val, explodes, del) {
+        varspec.iterate(context, cache, opss.encode, function(key, val, explodes, del) {
             var segm = opss.lblval(key, val, explodes, del);
             if (segm != null) {
                 res += join + segm;
@@ -175,19 +172,19 @@ function VarSpec (name, expl, part, nums, defs) {
     this.defs = defs;
 };
 
-VarSpec.prototype.iterate = function(context, encoder, adder) {
+VarSpec.prototype.iterate = function(context, cache, encoder, adder) {
     var val = context[this.name];
     
-    if ($.isFunction(val))
-        val = val(context);
-    /* TODO: from the spec: If a variable appears more than once in an expression or within
-    multiple expressions of a URI Template, the value of that variable
-    MUST remain static throughout the expansion process (i.e., the
-    variable must have the same value for the purpose of calculating each
-    expansion).    
-    -- 
-    this suggests we push the evaluated function value back into the (cloned) context ?
-    */
+    if ($.isFunction(val)) {
+        var tupple = cache[this.name];
+        if (tupple == null) { 
+            res =  val(context);
+        } else {
+            res = tupple.val;
+        }
+        cache[this.name] = {key: this.name, val: res}; // by storing tupples we make sure a null return is validly consistent too in expansions
+        val = res;
+    }
 
     var isArr = false;
     var isObj = false;
