@@ -19,13 +19,13 @@ test("parse templates", function() {
         "{x}",
         "{x.y}",
         "{+x}",
-        "{+x*|help,y}",
+        "{+x*,y}",
         "{x+}",
         "{x:10}",
-        "{x^-3|def}",
+        "{x^3}",
         "{a,b}",
         "{+a,b}",
-        "{/a|yes,b|no}",
+        "{/a,b}",
         "{?a:-2,b*}",
         "{.a,b}",
         "{;a,b^4}",
@@ -98,16 +98,16 @@ test("Section 1.2 'levels and expression types' -- Level 1", function() {
 test("Section 1.2 'levels and expression types' -- Level 2", function() {
     var context = {"var": "value", "hello": "Hello World!", "empty": "", "undef": null, "path": "/foo/bar"};
     var testset = {
-        "{var|default}"         : "value",
-        "O{empty|default}X"     : "OX",
-        "O{undef|default}X"     : "OdefaultX",
+        "{var}"                 : "value",
+        "O{empty}X"             : "OX",
+        "O{undef}X"             : "OX",
         "{+var}"                : "value",
         "{+hello}"              : "Hello%20World!",
         "{+path}/here"          : "/foo/bar/here",
         "here?ref={+path}"      : "here?ref=/foo/bar",
-        "up{+path}{var}/here"     : "up/foo/barvalue/here",
-        "up{+empty|/1}/here"    : "up/here",
-        "up{+undef|/1}/here"    : "up/1/here"
+        "up{+path}{var}/here"   : "up/foo/barvalue/here",
+        "up{+empty}/here"       : "up/here",
+        "up{+undef}/here"       : "up/here"
     };
     assertSet(testset, context);
 });
@@ -122,7 +122,7 @@ test("Section 1.2 'levels and expression types' -- Level 3", function() {
         "?{x,empty}"            : "?1024,",
         "?{x,undef}"            : "?1024",
         "?{undef,y}"            : "?768",
-        "?{x,undef|0}"          : "?1024,0",
+        "?{x,undef}"            : "?1024",
         "{+x,hello,y}"          : "1024,Hello%20World!,768",
         "{+path,x}/here"        : "/foo/bar,1024/here", 
         "X{.var}"               : "X.value",
@@ -150,39 +150,39 @@ test("Section 1.2 'levels and expression types' -- Level 4", function() {
                    "list": [ "red", "green", "blue" ],
                    "keys": {"semi": ";", "dot": ".", "comma": ","}  };
     var testset = {
-        // String expansion with value modifiers         (Sec 3.2.2) |
+        // String expansion with value modifiers         (Sec 3.2.2) 
         "{var:3}"               : "val",
         "{var:30}"              : "value",
         "{list}"                : "red,green,blue",
         "{list*}"               : "red,green,blue",
         "{keys}"                : "semi,%3B,dot,.,comma,%2C",
         "{keys*}"               : "semi=%3B,dot=.,comma=%2C",
-        //Reserved expansion with value modifiers       (Sec 3.2.3) |
+        //Reserved expansion with value modifiers       (Sec 3.2.3) 
         "{+path:6}/here"        : "/foo/b/here",
         "{+list}"               : "red,green,blue",
         "{+list*}"              : "red,green,blue",
         "{+keys}"               : "semi,;,dot,.,comma,,",
         "{+keys*}"              : "semi=;,dot=.,comma=,",
-        //Label expansion, dot-prefixed                 (Sec 3.2.4) |
+        //Label expansion, dot-prefixed                 (Sec 3.2.4) 
         "X{.var:3}"             : "X.val",
         "X{.list}"              : "X.red,green,blue",
         "X{.list*}"             : "X.red.green.blue",
         "X{.keys}"              : "X.semi,%3B,dot,.,comma,%2C",
         "X{.keys*}"             : "X.semi=%3B.dot=..comma=%2C",
-        //Path segments, slash-prefixed                 (Sec 3.2.5) |
+        //Path segments, slash-prefixed                 (Sec 3.2.5) 
         "{/var:1,var}"          : "/v/value",
         "{/list}"               : "/red,green,blue",
         "{/list*}"              : "/red/green/blue",
         "{/list*,path:4}"       : "/red/green/blue/%2Ffoo",
         "{/keys}"               : "/semi,%3B,dot,.,comma,%2C",
         "{/keys*}"              : "/semi=%3B/dot=./comma=%2C",
-        //Path-style parameters, semicolon-prefixed     (Sec 3.2.6) |
+        //Path-style parameters, semicolon-prefixed     (Sec 3.2.6) 
         "{;hello:5}"            : ";hello=Hello",
         "{;list}"               : ";list=red,green,blue",
         "{;list*}"              : ";red;green;blue",
         "{;keys}"               : ";keys=semi,%3B,dot,.,comma,%2C",
         "{;keys*}"              : ";semi=%3B;dot=.;comma=%2C",
-        //Form-style query, ampersand-separated         (Sec 3.2.7) |
+        //Form-style query, ampersand-separated         (Sec 3.2.7) 
         "{?var:3}"              : "?var=val",
         "{?list}"               : "?list=red,green,blue",
         "{?list*}"              : "?list=red&list=green&list=blue",
@@ -207,71 +207,13 @@ test("Section 2.4.1 'prefix values'", function() {
 });
   
 
-test("Section 2.5 'value defaults'", function() {
-    var context = { "var" : "value", "name" : [ "Fred", "Wilma", "Pebbles" ], 
-                    "favs": [("color","red"), ("volume","high")], 
-                    "empty_keys" : [], "empty" : "", "undef" : null };
-    var testset = {
-        "{var|default}"         : "value",
-        "{undef|default}"       : "default",
-        "{undef:3|default}"     : "default",
-
-        "x{empty}y"             : "xy",
-        "x{empty|_}y"           : "xy",
-        "x{undef}y"             : "xy",
-        "x{undef|_}y"           : "x_y",
-
-        "x{.name|none}"         : "x.Fred,Wilma,Pebbles",
-        "x{.name*|none}"        : "x.Fred.Wilma.Pebbles",
-        "x{.empty}"             : "x.",
-        "x{.empty|none}"        : "x.",
-        "x{.undef}"             : "x",
-        "x{.undef|none}"        : "x.none",
-
-        "x{/name|none}"         : "x/Fred,Wilma,Pebbles",
-        "x{/name*|none}"        : "x/Fred/Wilma/Pebbles",
-        "x{/undef}"             : "x",
-        "x{/undef|none}"        : "x/none",
-        "x{/empty}"             : "x/",
-        "x{/empty|none}"        : "x/",
-        "x{/empty_keys}"        : "x",
-        "x{/empty_keys|none}"   : "x/none",
-        "x{/empty_keys*}"       : "x",
-        "x{/empty_keys*|none}"  : "x/none",
-
-        "x{;name|none}"         : "x;name=Fred,Wilma,Pebbles",
-        "x{;favs|none}"         : "x;favs=color,red,volume,high",
-        "x{;favs*|none}"        : "x;color=red;volume=high",
-        "x{;empty}"             : "x;empty",
-        "x{;empty|none}"        : "x;empty",
-        "x{;undef}"             : "x",
-        "x{;undef|none}"        : "x;none",
-        "x{;undef|foo=y}"       : "x;foo=y",
-
-        "x{?var|none}"          : "x?var=value",
-        "x{?favs|none}"         : "x?favs=color,red,volume,high",
-        "x{?favs*|none}"        : "x?color=red&volume=high",
-        "x{?empty}"             : "x?empty=",
-        "x{?empty|foo=none}"    : "x?empty=",
-        "x{?undef}"             : "x",
-        "x{?undef|foo=none}"    : "x?foo=none",
-        "x{?empty_keys}"        : "x",
-        "x{?empty_keys|none}"   : "x?none",
-        "x{?empty_keys|y=z}"    : "x?y=z",
-        "x{?empty_keys*|y=z}"   : "x?y=z",
-    };
-    
-    assertSet(testset, context);
-});
-
-
 test("Section 3.2.2 'simple string expansion'", function() {
     var context = {"foo": "fred" };
     var testset = {
         "{foo}"                 : "fred",
         "{foo,foo}"             : "fred,fred",
         "{bar,foo}"             : "fred",
-        "{bar|wilma}"           : "wilma"
+        "{bar}"                 : ""
     };
     
     assertSet(testset, context);
@@ -297,7 +239,7 @@ test("Section 3.2.4 'label expansion'", function() {
         "{.foo}"                 : ".fred",
         "{.foo,foo}"             : ".fred.fred",
         "{.bar,foo}"             : ".fred",
-        "{.bar|wilma}"           : ".wilma"
+        "{.bar}"                 : ""
     };
 
     assertSet(testset, context);
@@ -310,7 +252,7 @@ test("Section 3.2.5 'path segment expansion'", function() {
         "{/foo}"                 : "/fred",
         "{/foo,foo}"             : "/fred/fred",
         "{/bar,foo}"             : "/fred",
-        "{/bar|wilma}"           : "/wilma"
+        "{/bar}"                 : ""
     };
 
     assertSet(testset, context);
@@ -323,7 +265,7 @@ test("Section 3.2.6 'matrix parameter expansion'", function() {
         "{;foo}"                 : ";foo=fred",
         "{;foo,foo}"             : ";foo=fred;foo=fred",
         "{;bar,foo}"             : ";foo=fred",
-        "{;bar|wilma}"           : ";bar=wilma"
+        "{;bar}"                 : ""
     };
 
     assertSet(testset, context);
@@ -336,7 +278,7 @@ test("Section 3.2.7 'form parameter expansion'", function() {
         "{?foo}"                 : "?foo=fred",
         "{?foo,foo}"             : "?foo=fred&foo=fred",
         "{?bar,foo}"             : "?foo=fred",
-        "{?bar|wilma}"           : "?bar=wilma&foo=fred"
+        "{?bar}"                 : ""
     };
 
     assertSet(testset, context);
@@ -344,116 +286,10 @@ test("Section 3.2.7 'form parameter expansion'", function() {
 
 
 
-module("Samples from draft 0.4");
-test("page 5", function() {
-    var context = {"query": "mycelium", "number": 100}; // no "undef"
-    var testset = {
-        "http://www.example.com/foo{?query,number}": "http://www.example.com/foo?query=mycelium&number=100",
-        "http://www.example.com/foo{?undef,number}": "http://www.example.com/foo?number=100"
-    };
-    assertSet(testset, context);
-});
+module("Extra: historic relicts of previous drafts that still seem useful.");
 
-test("table on pages 6-8", function() {
-    var context = {
-        "var"   : "value",
-        "hello" : "Hello World!",
-        "undef" : null, //explicit, but same as not mentioning it
-        "empty" : "",
-        "list"  : [ "val1", "val2", "val3" ],
-        "keys"  : {"key1": "val1", "key2": "val2"},
-        "path"  : "/foo/bar",
-        "x"     : 1024,
-        "y"     : 768
-    }
-
-
-
-    var testset = {
-    //  Simple expansion with comma-separated values
-        "{var}"           : "value",
-        "{hello}"          : "Hello%20World%21",
-        "{path}/here"     : "%2Ffoo%2Fbar/here",
-        "{x,y}"           : "1024,768",
-        "{var|default}"   : "value",
-        "{undef|default}" : "default",
-        "{list}"          : "val1,val2,val3",
-        "{list*}"         : "val1,val2,val3",
-        "{list+}"         : "list.val1,list.val2,list.val3",
-        "{keys}"          : "key1,val1,key2,val2",
-        "{keys*}"         : "key1,val1,key2,val2",
-        "{keys+}"         : "keys.key1,val1,keys.key2,val2",
-
-    // Reserved expansion with comma-separated values
-        "{+var}"         : "value",
-        "{+hello}"       : "Hello%20World!",
-        "{+path}/here"   : "/foo/bar/here",
-        "{+path,x}/here" : "/foo/bar,1024/here",
-        "{+path}{x}/here": "/foo/bar1024/here",
-        "{+empty}/here"  : "/here",
-        "{+undef}/here"  : "/here",
-        "{+list}"        : "val1,val2,val3",
-        "{+list*}"       : "val1,val2,val3",
-        "{+list+}"       : "list.val1,list.val2,list.val3",
-        "{+keys}"        : "key1,val1,key2,val2",
-        "{+keys*}"       : "key1,val1,key2,val2",
-        "{+keys+}"       : "keys.key1,val1,keys.key2,val2",
-
-    // Path-style parameters, semicolon-prefixed
-        "{;x,y}"       : ";x=1024;y=768",
-        "{;x,y,empty}" : ";x=1024;y=768;empty",
-        "{;x,y,undef}" : ";x=1024;y=768",
-        "{;list}"      : ";val1,val2,val3",
-        "{;list*}"     : ";val1;val2;val3",
-        "{;list+}"     : ";list=val1;list=val2;list=val3",
-        "{;keys}"      : ";key1,val1,key2,val2",
-        "{;keys*}"     : ";key1=val1;key2=val2",
-        "{;keys+}"     : ";keys.key1=val1;keys.key2=val2",
-
-
-    //  Form-style parameters, ampersand-separated
-        "{?x,y}"       : "?x=1024&y=768",
-        "{?x,y,empty}" : "?x=1024&y=768&empty=",
-        "{?x,y,undef}" : "?x=1024&y=768",
-        "{?list}"      : "?list=val1,val2,val3",
-        "{?list*}"     : "?val1&val2&val3",
-        "{?list+}"     : "?list=val1&list=val2&list=val3",
-        "{?keys}"      : "?keys=key1,val1,key2,val2",
-        "{?keys*}"     : "?key1=val1&key2=val2",
-        "{?keys+}"     : "?keys.key1=val1&keys.key2=val2",
-
-    //  Hierarchical path segments, slash-separated
-        "{/var}"       : "/value",
-        "{/var,empty}" : "/value/",
-        "{/var,undef}" : "/value",
-        "{/list}"      : "/val1,val2,val3",
-        "{/list*}"     : "/val1/val2/val3",
-        "{/list*,x}"   : "/val1/val2/val3/1024",
-        "{/list+}"     : "/list.val1/list.val2/list.val3",
-        "{/keys}"      : "/key1,val1,key2,val2",
-        "{/keys*}"     : "/key1/val1/key2/val2",
-        "{/keys+}"     : "/keys.key1/val1/keys.key2/val2",
-
-    //  Label expansion, dot-prefixed
-        "X{.var}"     : "X.value",
-        "X{.empty}"   : "X.",
-        "X{.undef}"   : "X",
-        "X{.list}"    : "X.val1,val2,val3",
-        "X{.list*}"   : "X.val1.val2.val3",
-        "X{.list*,x}" : "X.val1.val2.val3.1024",
-        "X{.list+}"   : "X.list.val1.list.val2.list.val3",
-        "X{.keys}"    : "X.key1,val1,key2,val2",
-        "X{.keys*}"   : "X.key1.val1.key2.val2",
-        "X{.keys+}"   : "X.keys.key1.val1.keys.key2.val2",
-    };
-    
-    assertSet(testset, context);
-});
-
-
-test("page 11 on reserved operators", function() {
+test("", function() {
     /*
-    from page 11: 
     The operator characters pipe ("|"), exclamation ("!"), and at-sign("@") are reserved for future extensions.
     A processor that unexpectedly encounters such an extension operator SHOULD pass the
     expression through unexpanded and MAY also indicate a warning to the invoking application.
@@ -472,178 +308,7 @@ test("page 11 on reserved operators", function() {
 });
 
 
-test("page 13", function() {
-    var context = {
-        "address"   : {"city": "Newport Beach", "state": "CA"},
-        "from"      : {"zipcode": 92660}, 
-        "to"        : {"zipcode": 90210}, 
-    };
 
-    var testset = {
-        "/mapper{?address*}"       : "/mapper?city=Newport%20Beach&state=CA",
-        "/directions{?from+,to+}"  : "/directions?from.zipcode=92660&to.zipcode=90210"
-    };
-    
-    assertSet(testset, context);
-});
-
-
-
-test("page 15 on partial modifier", function() {
-    var context = {
-        "var"    : "value",
-        "name"   : [ "Fred", "Wilma", "Pebbles" ]
-    };
-
-    var testset = {
-        "{var}"     : "value",
-        "{var:20}"  : "value",
-        "{var:3}"   : "val",
-        "{var^3}"   : "ue",
-        "{var:-3}"  : "lue",
-        "{var^-3}"  : "va",
-        "{?name}"   : "?name=Fred,Wilma,Pebbles",
-        "{?name:1}" : "?name=F"
-    };
-    
-    assertSet(testset, context);
-});
-
-
-
-test("page 15-17 on defaults", function() {
-    var context = {
-        "var"        : "value",
-        "empty"      : "",
-        "undef"      : null,
-        "name"       : [ "Fred", "Wilma", "Pebbles" ],
-        "favs"       : {"color": "red", "volume": "high"},
-        "empty_list" : [],
-        "empty_keys" : {}
-    };
-
-    var testset = {
-        "{var|default}"       : "value",
-        "{undef|default}"     : "default",
-        "x{empty}y"           : "xy",
-        "x{empty|_}y"         : "xy",
-        "x{undef}y"           : "xy",
-        "x{undef|_}y"         : "x_y",
-        "x{empty_list}y"      : "xy",
-        "x{empty_list|_}y"    : "xy",
-        "x{empty_list*}y"     : "xy",
-        "x{empty_list*|_}y"   : "x_y",
-        "x{empty_list+}y"     : "xy",
-        "x{empty_list+|_}y"   : "xempty_list._y",
-        "x{empty_keys}y"      : "xy",
-        "x{empty_keys|_}y"    : "xy",
-        "x{empty_keys*}y"     : "xy",
-        "x{empty_keys*|_}y"   : "x_y",
-        "x{empty_keys+}y"     : "xy",
-        "x{empty_keys+|_}y"   : "xempty_keys._y",
-        "x{?name|none}"       : "x?name=Fred,Wilma,Pebbles",
-        "x{?favs|none}"       : "x?favs=color,red,volume,high",
-        "x{?favs*|none}"      : "x?color=red&volume=high",
-        "x{?favs+|none}"      : "x?favs.color=red&favs.volume=high",
-        "x{?undef}"           : "x",
-        "x{?undef|none}"      : "x?undef=none",
-        "x{?empty}"           : "x?empty=",
-        "x{?empty|none}"      : "x?empty=",
-        "x{?empty_list}"      : "x",
-        "x{?empty_list|none}" : "x?empty_list=none",
-        "x{?empty_list*}"     : "x",
-        "x{?empty_list*|none}": "x?none",
-        "x{?empty_list+}"     : "x",
-        "x{?empty_list+|none}": "x?empty_list.none",
-        "x{?empty_keys}"      : "x",
-        "x{?empty_keys|none}" : "x?empty_keys=none",
-        "x{?empty_keys*}"     : "x",
-        "x{?empty_keys*|none}": "x?none",
-        "x{?empty_keys+}"     : "x",
-        "x{?empty_keys+|none}": "x?empty_keys.none",
-        "x{;name|none}"       : "x;name=Fred,Wilma,Pebbles",
-        "x{;favs|none}"       : "x;favs=color,red,volume,high",
-        "x{;favs*|none}"      : "x;color=red;volume=high",
-        "x{;favs+|none}"      : "x;favs.color=red;favs.volume=high",
-        "x{;undef}"           : "x",
-        "x{;undef|none}"      : "x;undef=none",
-        "x{;empty}"           : "x;empty",
-        "x{;empty|none}"      : "x;empty",
-        "x{;empty_list}"      : "x",
-        "x{;empty_list|none}" : "x;empty_list=none",
-        "x{;empty_list*}"     : "x",
-        "x{;empty_list*|none}": "x;none",
-        "x{;empty_list+}"     : "x",
-        "x{;empty_list+|none}": "x;empty_list.none",
-        "x{;empty_keys}"      : "x",
-        "x{;empty_keys|none}" : "x;empty_keys=none",
-        "x{;empty_keys*}"     : "x",
-        "x{;empty_keys*|none}": "x;none",
-        "x{;empty_keys+}"     : "x",
-        "x{;empty_keys+|none}": "x;empty_keys.none",
-        "x{/name|none}"       : "x/Fred,Wilma,Pebbles",
-        "x{/name*|none}"      : "x/Fred/Wilma/Pebbles",
-        "x{/name+|none}"      : "x/name.Fred/name.Wilma/name.Pebbles",
-        "x{/favs|none}"       : "x/color,red,volume,high",
-        "x{/favs*|none}"      : "x/color/red/volume/high",
-        "x{/favs+|none}"      : "x/favs.color/red/favs.volume/high",
-        "x{/undef}"           : "x",
-        "x{/undef|none}"      : "x/none",
-        "x{/empty}"           : "x/",
-        "x{/empty|none}"      : "x/",
-        "x{/empty_list}"      : "x",
-        "x{/empty_list|none}" : "x/none",
-        "x{/empty_list*}"     : "x",
-        "x{/empty_list*|none}": "x/none",
-        "x{/empty_list+}"     : "x",
-        "x{/empty_list+|none}": "x/empty_list.none",
-        "x{/empty_keys}"      : "x",
-        "x{/empty_keys|none}" : "x/none",
-        "x{/empty_keys*}"     : "x",
-        "x{/empty_keys*|none}": "x/none",
-        "x{/empty_keys+}"     : "x",
-        "x{/empty_keys+|none}": "x/empty_keys.none",
-        //added own - cases for . operator missing in spec?
-        "x{.undef}"           : "x"
-    };
-    
-    assertSet(testset, context);
-});
-
-
-
-
-test("page 21 on simple expansion", function() {
-    var context = {
-        "foo"    : "fred"
-    };
-
-    var testset = {
-        "{foo}"       : "fred",
-        "{foo,foo}"   : "fred,fred",
-        "{bar,foo}"   : "fred",
-        "{bar|wilma}" : "wilma"
-    };
-    
-    assertSet(testset, context);
-});
-
-
-test("page 21 on reserved expansion", function() {
-    var context = {
-        "foo"    : "That's right!",
-        "base"   : "http://example.com/home/"
-    };
-
-    var testset = {
-        "{foo}"         : "That%27s%20right%21",
-        "{+foo}"        : "That%27s%20right!",
-        "{base}index"   : "http%3A%2F%2Fexample.com%2Fhome%2Findex",
-        "{+base}index"  : "http://example.com/home/index"
-    };
-    
-    assertSet(testset, context);
-});
 
 module("Extra: js implementation features");
     // context-variables that are functions!!!
@@ -658,6 +323,12 @@ test("evaluate functions from context.", function() {
         "{fn},{fn}"    : "1,1"
     };
     
+    /* TODO: from the 0.4 draft spec: If a variable appears more than once in an expression or within
+    multiple expressions of a URI Template, the value of that variable
+    MUST remain static throughout the expansion process (i.e., the
+    variable must have the same value for the purpose of calculating each
+    expansion). */
+
     assertSet(testset, context);
 });
 
@@ -705,7 +376,7 @@ test("%encoded context names", function() {
 
     var context = {
         "!":  "exclamation-mark",
-        "%21": "enocded exclamation-mark"
+        "%21": "encoded exclamation-mark"
     }
 
     var testset = {
