@@ -70,7 +70,7 @@ function assertSet(set, data) {
     }
 }
 
-module("Samples from draft 0.5");
+module("Samples from Secification (draft 0.6 svn trunk)");
 test("Section 1.1 'overview'", function() {
     var context = {"username": "mpo", "term": "dog", "q": "cat", "lang": "en", "query": "mycelium", "number": 100};
     var testset = {
@@ -288,7 +288,7 @@ test("Section 3.2.7 'form parameter expansion'", function() {
 
 module("Extra: historic relicts of previous drafts that still seem useful.");
 
-test("", function() {
+test("Extra: reserved operators", function() {
     /*
     The operator characters pipe ("|"), exclamation ("!"), and at-sign("@") are reserved for future extensions.
     A processor that unexpectedly encounters such an extension operator SHOULD pass the
