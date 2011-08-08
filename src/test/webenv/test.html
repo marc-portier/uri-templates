@@ -218,7 +218,7 @@ test("Section 3.2.2 'simple string expansion'", function() {
     
     assertSet(testset, context);
 });
-  
+
   
 test("Section 3.2.3 'reserved expansion'", function() {
     var context = {"foo": "That's right!", "base" : "http://example.com/home/" };
@@ -333,14 +333,15 @@ test("evaluate functions from context.", function() {
 });
 
 test("dereference nesting from context.", function() {
+
     var context = {
-        "a.b"       : "value @ a.b",
-        "x"         : { "y": "value @ y via x"}
+        "a.b"       : "value-at-a.b",
+        "x"         : { "y": "value-at-y-via-x"}
     }
 
     var testset = {
-        "{a.b}"       : "value @ a.b",
-        "{x.y}"       : "value @ y via x"
+        "{a.b}"       : "value-at-a.b",
+        "{x.y}"       : "value-at-y-via-x"
     };
     
     assertSet(testset, context);
@@ -357,15 +358,9 @@ test("trimming escaped sequences", function() {
         "{string:1}"   : "%21",
         "{string:2}"   : "%21%21",
         "{string:3}"   : "%21%21%21",
-        "{string:-3}"  : "%21%21%21",
-        "{string:-2}"  : "%21%21",
-        "{string:-1}"  : "%21",
         "{list:1}"     : "%21",
         "{list:2}"     : "%21,",
-        "{list:3}"     : "%21,%21",
-        "{list:-3}"    : "%21,%21",
-        "{list:-2}"    : ",%21",
-        "{list:-1}"    : "%21",
+        "{list:3}"     : "%21,%21"
     };
     
     assertSet(testset, context);

@@ -7,129 +7,6 @@ Distributed under ALPv2
 ;
 (function($){
 
-var RESERVEDCHARS_RE = /[:/?#\[\]@!$&()*+,;=\']/g;
-function encodeNormal(val) {
-    return encodeURIComponent(val).replace(RESERVEDCHARS_RE, function(s) {return escape(s)} );
-}
-function encodeReserved(val) {
-    return encodeURI(val);
-}
-
-//-----------------------------------various template syntax features & settings
-var simpleSet = { 
-    prefix : "", 
-    joiner : ",", 
-    encode : encodeNormal,
-    add_fn : function(lbl, val, expl, c) {
-        c = c || '=';
-        return (expl && lbl) ? lbl + c + val : val;
-    }
-};
-var reservedSet = { 
-    prefix : "", 
-    joiner : ",", 
-    encode : encodeReserved,
-    add_fn : function(lbl, val, expl, c) {
-        c = c || '=';
-        return expl ? (lbl ? lbl + c + val : val) : val;
-    }
-};
-var pathParamSet = { 
-    prefix : ";", 
-    joiner : ";", 
-    encode : encodeNormal,
-    add_fn : function(lbl, val, expl, c) {
-        var c = '=';
-        return lbl ? ( val && val.length > 0 ? lbl + c + val : lbl) : val;
-    }
-};
-var formParamSet = { 
-    prefix : "?", 
-    joiner : "&", 
-    encode : encodeNormal,
-    add_fn : function(lbl, val, expl, c) {
-        var c = '=';
-        return lbl ? lbl + c + val : val;
-    }
-};
-var pathHierarchySet = { 
-    prefix : "/", 
-    joiner : "/", 
-    encode : encodeNormal,
-    add_fn : function(lbl, val, expl, c) {
-        c = c || '=';
-        return (expl && lbl) ? ( val && val.length > 0 ? lbl + c + val : lbl) : val;
-    }
-};
-var labelSet = { 
-    prefix : ".", 
-    joiner : ".", 
-    encode : encodeNormal,
-    add_fn : function(lbl, val, expl, c) {
-        c = c || '=';
-        return (expl && lbl) ? ( val && val.length > 0 ? lbl + c + val : lbl) : val;
-    }
-};
-
-
-var OPS_SETTINGS = function(ops) {
-    switch(ops) {
-        case ''  : return simpleSet; 
-        case '+' : return reservedSet; 
-        case ';' : return pathParamSet;
-        case '?' : return formParamSet;
-        case '/' : return pathHierarchySet;
-        case '.' : return labelSet;
-        default  : throw "Unexpected operator: '"+ops+"'"; 
-    }
-}
-
-var noneLblModifier = function(name, k) {
-    return name;
-};
-var compLblModifier = function(name, k) {
-    return k;
-};
-var fullLblModifier = function(name, k) {
-    return name + (k ? "." + k : "");
-};
-
-var EXPLODELBL_MODIFIER = function(expl) {
-    expl = expl || '';
-    switch(expl) {
-        case '' : return noneLblModifier; 
-        case '*': return compLblModifier;
-        case '+': return fullLblModifier;
-    }
-};
-
-var PARTVALUE_MODIFIER = function(part, nums) {
-    part = part || '';
-    switch (part) {
-        case ':' : return function(v) { // substring
-            v = v.toString();
-            if (nums >= 0) {
-                return v.substring(0,nums);
-            } else {
-                return v.substring(v.length + nums);
-            }
-        };
-        case '^' : return function(v) { // remainder
-            v = v.toString();
-            if (nums >= 0) {
-                return v.substring(nums);
-            } else {
-                return v.substring(0, v.length + nums);
-            }
-        };
-        default  : return function(v) {
-            return v;
-        };
-    }
-};
-
-
-//---------------------------------------------- objects in use
 
 /**
  * Create a runtime cache around retrieved values from the context.
@@ -179,96 +56,244 @@ Literal.prototype.expand = function() {
     return this.txt;
 };
 
-function Expression(ops, vars ) {
-    this.opss = OPS_SETTINGS(ops);
+
+
+var RESERVEDCHARS_RE = new RegExp("[:/?#\\[\\]@!$&()*+,;=']","g");
+function encodeNormal(val) {
+    return encodeURIComponent(val).replace(RESERVEDCHARS_RE, function(s) {return escape(s)} );
+}
+
+var SELECTEDCHARS_RE = new RegExp("[\"']","g");
+function encodeReserved(val) {
+    return encodeURI(val).replace(SELECTEDCHARS_RE, function(s) {return escape(s)} );
+}
+
+
+function addUnNamed(name, key, val) {
+    return key + (key.length > 0 ? "=" : "") + val;
+}
+
+function addNamed(name, key, val) {
+    if (!key || key.length == 0) 
+        key = name;
+    return key + (key.length > 0 ? "=" : "") + val;
+}
+
+function addLabeled(name, key, val, noName) {
+    noName = noName || false;
+    if (noName) { name = ""; }
+    
+    if (!key || key.length == 0) 
+        key = name;
+    return key + (key.length > 0 && val ? "=" : "") + val;
+}
+
+
+var simpleConf = { 
+    prefix : "",     joiner : ",",     encode : encodeNormal,    builder : addUnNamed
+};
+var reservedConf = { 
+    prefix : "",     joiner : ",",     encode : encodeReserved,  builder : addUnNamed
+};
+var pathParamConf = { 
+    prefix : ";",    joiner : ";",     encode : encodeNormal,    builder : addLabeled
+};
+var formParamConf = { 
+    prefix : "?",    joiner : "&",     encode : encodeNormal,    builder : addNamed
+};
+var pathHierarchyConf = { 
+    prefix : "/",    joiner : "/",     encode : encodeNormal,    builder : addUnNamed
+};
+var labelConf = { 
+    prefix : ".",    joiner : ".",     encode : encodeNormal,    builder : addUnNamed
+};
+
+
+function buildExpression(ops, vars) {
+    var conf;
+    switch(ops) {
+        case ''  : conf = simpleConf; break;
+        case '+' : conf = reservedConf; break;
+        case ';' : conf = pathParamConf; break;
+        case '?' : conf = formParamConf; break;
+        case '/' : conf = pathHierarchyConf; break;
+        case '.' : conf = labelConf; break;
+        default  : throw "Unexpected operator: '"+ops+"'"; 
+    }
+    return new Expression(conf, vars);
+}
+
+function Expression(conf, vars ) {
+    $.extend(this, conf);
     this.vars = vars;
 };
 
 Expression.prototype.expand = function(context) {
-    var opss = this.opss;
-    var joiner = opss.prefix;
+    var joiner = this.prefix;
+    var nextjoiner = this.joiner;
+    var buildSegment = this.builder;
     var res = "";
     var cnt = this.vars.length;
     for (var i = 0 ; i< cnt; i++) {
         var varspec = this.vars[i];
-        varspec.iterate(context, opss.encode, function(key, val, explodes, del) {
-            var segm = opss.add_fn(key, val, explodes, del);
+        varspec.addValues(context, this.encode, function(key, val, noName) {
+            var segm = buildSegment(varspec.name, key, val, noName);
             if (segm != null) {
                 res += joiner + segm;
-                joiner = opss.joiner;
+                joiner = nextjoiner;
             }
         });
     }
     return res;
 };
 
-function VarSpec (name, expl, part, nums) {
-    this.name = name;
-    this.explLbl = EXPLODELBL_MODIFIER(expl);
-    this.explodes = !!expl; // make it boolean
-    this.partVal = PARTVALUE_MODIFIER(part, nums);
-};
 
-VarSpec.prototype.iterate = function(context, encoder, adder) {
-    var val = context.get(this.name);
 
+
+/** 
+ * Helper class to help grow a string of (possibly encoded) parts until limit is reached
+ */
+function Buffer(limit) {
+    this.str = "";
+    if (limit == UNBOUND) {
+        this.appender = Buffer.UnboundAppend;
+    } else {
+        this.len = 0;
+        this.limit = limit; 
+        this.appender = Buffer.BoundAppend;
+    }
+}
+
+Buffer.prototype.append = function(part, encoder) {
+    return this.appender(this, part, encoder);
+}
+
+Buffer.UnboundAppend = function(me, part, encoder) {
+    part = encoder ? encoder(part) : part;
+    me.str += part;
+    return me;
+}
+
+Buffer.BoundAppend = function(me, part, encoder) {
+    part = part.substring(0, me.limit - me.len);
+    me.len += part.length;
+    
+    part = encoder ? encoder(part) : part;
+    me.str += part;
+    return me;
+}
+
+
+function arrayToString(arr, encoder, maxLength) {
+    var buffer = new Buffer(maxLength);    
+    var joiner = "";
+
+    var cnt = arr.length;
+    for (var i=0; i<cnt; i++) {
+        if (arr[i] != null) {
+            buffer.append(joiner).append(arr[i], encoder);
+            joiner = ",";
+        }
+    }
+    return buffer.str;
+}
+
+function objectToString(obj, encoder, maxLength) {
+    var buffer = new Buffer(maxLength);    
+    var joiner = "";
+
+    for (k in obj) {
+        if (obj[k] != null) {
+            buffer.append(joiner + k + ',').append(obj[k], encoder);
+            joiner = ",";
+        }
+    }
+    return buffer.str;
+}
+
+
+function simpleValueHandler(me, val, valprops, encoder, adder) {
+    // convert composite to string
+    // encode complete and add
+    var result;
+    
+    if (valprops.isArr) {
+        result = arrayToString(val, encoder, me.maxLength);
+    } else if (valprops.isObj) {
+        result = objectToString(val, encoder, me.maxLength)
+    } else {
+        var buffer = new Buffer(me.maxLength);
+        result = buffer.append(val, encoder).str;
+    }       
+    
+    adder("", result);
+}
+
+function explodeValueHandler(me, val, valprops, encoder, adder) {
+    //step through composite 
+    // add encoded vals
+    
+    if (valprops.isArr) {
+        var cnt = val.length;
+        for (var i=0; i<cnt; i++) {
+            adder("", encoder(val[i]), true );
+        }
+    } else if (valprops.isObj) {
+        for (k in val) {
+            adder(k, encoder(val[k]) );
+        }
+    } else { // explode-requested, but single value
+        adder("", encoder(val));
+    }
+}
+
+function valueProperties(val) {
     var isArr = false;
     var isObj = false;
-    var isUndef = false;  //note: "" is empty but not undef
-    var fallback = false;
+    var isUndef = true;  //note: "" is empty but not undef
     
     if (val != null) {
         isArr = (val.constructor === Array);
         isObj = (val.constructor === Object);
+        isUndef = false || (isArr && val.length == 0) || (isObj && $.isEmptyObject(val));
     } 
-    isUndef = (val == null || (isArr && val.length == 0) || (isObj && $.isEmptyObject(val)));
     
-    if (isUndef) return; // ignore empty values 
-    
-    if (!this.explodes) { // no exploding: wrap values into string
-        var joined = "";
-        var joiner = "";
-        if (isArr) {
-            var cnt = val.length;
-            for (var i=0; i<cnt; i++) {
-                if (val[i] != null) {
-                    joined += joiner + encoder(val[i]);
-                    joiner = ",";
-                }
-            }
-        } else if (isObj) {
-            for (k in val) {
-                if (val[k] != null) {
-                    joined += joiner + k + ',' + encoder(val[k]);
-                    joiner = ",";
-                }
-            }
-        } else {
-            joined = (val == null) ? null : encoder(val);
-        }       
-        
-        if (joined != null) {
-            //TODO redo this so the partial modifier can work on unescaped values!
-            // one idea is to pass the encoder function down to the partVal function and let it join & encode after trimming 
-            // (odd for from-end logic maybe) or else have some way of counting %HH as single chars
-            adder(this.name, this.partVal(joined));
-        }
+    return {isArr: isArr, isObj: isObj, isUndef: isUndef};
+}
 
-    // below cases are all exploding:
-    } else if (isArr) {
-        var lbl = this.explLbl(this.name);
-        var cnt = val.length;
-        for (var i=0; i<cnt; i++) {
-            adder(lbl, encoder(val[i]), true, '.' );
-        }
-    } else if (isObj) {
-        for (k in val) {
-            adder(this.explLbl(this.name, k),  encoder(val[k]) , true);
-        }
-    } else { // explode-requested, but single value
-        adder(this.explLbl(this.name), encoder(val));
+
+var UNBOUND = {};
+function buildVarSpec (name, expl, part, nums) {
+    var valueHandler, valueModifier;
+    
+    if (!!expl) { //interprete as boolean
+        valueHandler = explodeValueHandler;
+    } else 
+        valueHandler = simpleValueHandler;
+        
+    if (!part) {
+        nums = UNBOUND;
     }
+    
+    return new VarSpec(name, valueHandler, nums);
 };
+
+function VarSpec (name, vhfn, nums) {
+//TODO read spec on what makes a correct name: if no pcnt_encoded is allowed, no need to unescape
+// in the other case: fix the regexp for valid templates so we actually get here.
+    this.name = unescape(name); 
+    this.valueHandler = vhfn;
+    this.maxLength = nums;
+};
+
+VarSpec.prototype.addValues = function(context, encoder, adder) {
+    var val = context.get(this.name);
+    var valprops = valueProperties(val);
+    if (valprops.isUndef) return; // ignore empty values 
+    this.valueHandler(this, val, valprops, encoder, adder);
+}
+    
+    
 
 //----------------------------------------------parsing logic
 // How each varspec should look like
@@ -280,7 +305,7 @@ var match2varspec = function(m) {
     var part = m[4];
     var nums = parseInt(m[5]);
     
-    return new VarSpec(name, expl, part, nums);
+    return buildVarSpec(name, expl, part, nums);
 };
 
 
@@ -306,7 +331,7 @@ var match2expression = function(m) {
         vars[i] = match2varspec(match);
     }
     
-    return new Expression(ops, vars);
+    return buildExpression(ops, vars);
 };
 
 
