@@ -7,54 +7,65 @@ Distributed under ALPv2
 ;
 (function($){
 
+var RESERVEDCHARS_RE = /[:/?#\[\]@!$&()*+,;=\']/g;
 function encodeNormal(val) {
-    //TODO investigate what other chars need extra escaping
-    return encodeURIComponent(val).replace(/[!/]/g, function(s) {return escape(s)} );
+    return encodeURIComponent(val).replace(RESERVEDCHARS_RE, function(s) {return escape(s)} );
 }
-
 function encodeReserved(val) {
     return encodeURI(val);
 }
 
 //-----------------------------------various template syntax features & settings
-var simpleSet = { prefix : "", join : ",", 
+var simpleSet = { 
+    prefix : "", 
+    joiner : ",", 
     encode : encodeNormal,
-    lblval : function(lbl, val, expl, c) {
+    add_fn : function(lbl, val, expl, c) {
         c = c || '=';
         return (expl && lbl) ? lbl + c + val : val;
     }
 };
-var reservedSet = { prefix : "", join : ",", 
+var reservedSet = { 
+    prefix : "", 
+    joiner : ",", 
     encode : encodeReserved,
-    lblval : function(lbl, val, expl, c) {
+    add_fn : function(lbl, val, expl, c) {
         c = c || '=';
         return expl ? (lbl ? lbl + c + val : val) : val;
     }
 };
-var pathParamSet = { prefix : ";", join : ";", 
+var pathParamSet = { 
+    prefix : ";", 
+    joiner : ";", 
     encode : encodeNormal,
-    lblval : function(lbl, val, expl, c) {
+    add_fn : function(lbl, val, expl, c) {
         var c = '=';
         return lbl ? ( val && val.length > 0 ? lbl + c + val : lbl) : val;
     }
 };
-var formParamSet = { prefix : "?", join : "&", 
-    encode : encodeReserved,
-    lblval : function(lbl, val, expl, c) {
+var formParamSet = { 
+    prefix : "?", 
+    joiner : "&", 
+    encode : encodeNormal,
+    add_fn : function(lbl, val, expl, c) {
         var c = '=';
         return lbl ? lbl + c + val : val;
     }
 };
-var pathHierarchySet = { prefix : "/", join : "/", 
-    encode : encodeReserved,
-    lblval : function(lbl, val, expl, c) {
+var pathHierarchySet = { 
+    prefix : "/", 
+    joiner : "/", 
+    encode : encodeNormal,
+    add_fn : function(lbl, val, expl, c) {
         c = c || '=';
         return (expl && lbl) ? ( val && val.length > 0 ? lbl + c + val : lbl) : val;
     }
 };
-var labelSet = { prefix : ".", join : ".", 
+var labelSet = { 
+    prefix : ".", 
+    joiner : ".", 
     encode : encodeNormal,
-    lblval : function(lbl, val, expl, c) {
+    add_fn : function(lbl, val, expl, c) {
         c = c || '=';
         return (expl && lbl) ? ( val && val.length > 0 ? lbl + c + val : lbl) : val;
     }
@@ -148,28 +159,27 @@ function Expression(ops, vars ) {
 
 Expression.prototype.expand = function(context, cache) {
     var opss = this.opss;
-    var join = opss.prefix;
+    var joiner = opss.prefix;
     var res = "";
     var cnt = this.vars.length;
     for (var i = 0 ; i< cnt; i++) {
         var varspec = this.vars[i];
         varspec.iterate(context, cache, opss.encode, function(key, val, explodes, del) {
-            var segm = opss.lblval(key, val, explodes, del);
+            var segm = opss.add_fn(key, val, explodes, del);
             if (segm != null) {
-                res += join + segm;
-                join = opss.join;
+                res += joiner + segm;
+                joiner = opss.joiner;
             }
         });
     }
     return res;
 };
 
-function VarSpec (name, expl, part, nums, defs) {
+function VarSpec (name, expl, part, nums) {
     this.name = name;
     this.explLbl = EXPLODELBL_MODIFIER(expl);
     this.explodes = !!expl; // make it boolean
     this.partVal = PARTVALUE_MODIFIER(part, nums);
-    this.defs = defs;
 };
 
 VarSpec.prototype.iterate = function(context, cache, encoder, adder) {
@@ -196,31 +206,25 @@ VarSpec.prototype.iterate = function(context, cache, encoder, adder) {
         isObj = (val.constructor === Object);
     } 
     isUndef = (val == null || (isArr && val.length == 0) || (isObj && $.isEmptyObject(val)));
-    var wasUndef = isUndef; // we remember this fact
     
-    if (isUndef) { // fallback to default from varspec (sure to be a string value, but possibly undef/null)
-        val = this.defs;
-        isUndef = (val == null);
-    }
-
     if (isUndef) return; // ignore empty values 
     
     if (!this.explodes) { // no exploding: wrap values into string
         var joined = "";
-        var join = "";
-        if (isArr && !wasUndef) {
+        var joiner = "";
+        if (isArr) {
             var cnt = val.length;
             for (var i=0; i<cnt; i++) {
                 if (val[i] != null) {
-                    joined += join + encoder(val[i]);
-                    join = ",";
+                    joined += joiner + encoder(val[i]);
+                    joiner = ",";
                 }
             }
-        } else if (isObj && !wasUndef) {
+        } else if (isObj) {
             for (k in val) {
                 if (val[k] != null) {
-                    joined += join + k + ',' + encoder(val[k]);
-                    join = ",";
+                    joined += joiner + k + ',' + encoder(val[k]);
+                    joiner = ",";
                 }
             }
         } else {
@@ -237,21 +241,13 @@ VarSpec.prototype.iterate = function(context, cache, encoder, adder) {
     // below cases are all exploding:
     } else if (isArr) {
         var lbl = this.explLbl(this.name);
-        if (wasUndef) {
-            adder(lbl, encoder(val), true, '.' );
-        } else {
-            var cnt = val.length;
-            for (var i=0; i<cnt; i++) {
-                adder(lbl, encoder(val[i]), true, '.' );
-            }
+        var cnt = val.length;
+        for (var i=0; i<cnt; i++) {
+            adder(lbl, encoder(val[i]), true, '.' );
         }
     } else if (isObj) {
-        if (wasUndef) { // we need to fake objecty behaviour on the fallback value
-            adder(this.explLbl(this.name),  encoder(val) , true, '.');
-        } else {
-            for (k in val) {
-                adder(this.explLbl(this.name, k),  encoder(val[k]) , true);
-            }
+        for (k in val) {
+            adder(this.explLbl(this.name, k),  encoder(val[k]) , true);
         }
     } else { // explode-requested, but single value
         adder(this.explLbl(this.name), encoder(val));
@@ -260,32 +256,31 @@ VarSpec.prototype.iterate = function(context, cache, encoder, adder) {
 
 //----------------------------------------------parsing logic
 // How each varspec should look like
-var VARSPEC_RE=/([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(\|([^{},]*))?/;
+var VARSPEC_RE=/([A-Za-z0-9_][A-Za-z0-9_.]*)((\*)|(:)([0-9]+))?/;
 
 var match2varspec = function(m) {
     var name = m[1];
     var expl = m[3];
     var part = m[4];
     var nums = parseInt(m[5]);
-    var defs = m[7];
     
-    return new VarSpec(name, expl, part, nums, defs);
+    return new VarSpec(name, expl, part, nums);
 };
 
 
 // Splitting varspecs in list with:
-var LISTSEP_RE=/,/;
+var LISTSEP=",";
 
 // How each template should look like
-var TEMPL_RE=/({([+.;?/])?(([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(\|([^{},]*))?(,([A-Za-z0-9_][A-Za-z0-9_.]*)(([*+])|([:^])(-?[0-9]+))?(\|([^{},]*))?)*)})/g;
+var TEMPL_RE=/({([+.;?/])?(([A-Za-z0-9_][A-Za-z0-9_.]*)(\*|:([0-9]+))?(,([A-Za-z0-9_][A-Za-z0-9_.]*)(\*|:([0-9]+))?)*)})/g;
 // Note: reserved operators: |!@ are left out of the regexp in order to make those templates degrade into literals 
-// (as expected by the spec - see tests.html section "page 11")
+// (as expected by the spec - see tests.html "reserved operators")
 
 
 var match2expression = function(m) {
     var expr = m[0];
     var ops = m[2] || '';
-    var vars = m[3].split(LISTSEP_RE);
+    var vars = m[3].split(LISTSEP);
     var len = vars.length;
     for (var i=0; i<len; i++) {
         var match;
