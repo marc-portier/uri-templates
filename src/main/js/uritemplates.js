@@ -130,16 +130,43 @@ var PARTVALUE_MODIFIER = function(part, nums) {
 
 
 //---------------------------------------------- objects in use
+
+/**
+ * Create a runtime cache around retrieved values from the context.
+ * This allows for dynamic (function) results to be kept the same for multiple expansions within one template
+ * Uses key-value tupples in stead to be able to cache null values as well
+ */
+function CachingContext(context) {
+    this.raw = context;
+    this.cache = {};
+}
+
+CachingContext.prototype.get = function(key) {
+    var val = this.raw[key];
+    var result = val;
+    
+    if ($.isFunction(val)) { // check function-result-cache
+        var tupple = this.cache[key];
+        if (tupple != null) { 
+            result = tupple.val;
+        } else {
+            result = val(this.raw);
+            this.cache[key] = {key: key, val: result}; // by storing tupples we make sure a null return is validly consistent too in expansions
+        }
+    }
+    
+    return result;
+}
+
 function UriTemplate(set) {
     this.set = set;
 };
 UriTemplate.prototype.expand = function(context) {
-    context = context || {};
-    var cache = {};
+    var cache = new CachingContext(context);
     var res = "";
     var cnt = this.set.length;
     for (var i = 0; i<cnt; i++ ) {
-        res += this.set[i].expand(context, cache);
+        res += this.set[i].expand(cache);
     }
     return res;
 }
@@ -157,14 +184,14 @@ function Expression(ops, vars ) {
     this.vars = vars;
 };
 
-Expression.prototype.expand = function(context, cache) {
+Expression.prototype.expand = function(context) {
     var opss = this.opss;
     var joiner = opss.prefix;
     var res = "";
     var cnt = this.vars.length;
     for (var i = 0 ; i< cnt; i++) {
         var varspec = this.vars[i];
-        varspec.iterate(context, cache, opss.encode, function(key, val, explodes, del) {
+        varspec.iterate(context, opss.encode, function(key, val, explodes, del) {
             var segm = opss.add_fn(key, val, explodes, del);
             if (segm != null) {
                 res += joiner + segm;
@@ -182,19 +209,8 @@ function VarSpec (name, expl, part, nums) {
     this.partVal = PARTVALUE_MODIFIER(part, nums);
 };
 
-VarSpec.prototype.iterate = function(context, cache, encoder, adder) {
-    var val = context[this.name];
-    
-    if ($.isFunction(val)) {
-        var tupple = cache[this.name];
-        if (tupple == null) { 
-            res =  val(context);
-        } else {
-            res = tupple.val;
-        }
-        cache[this.name] = {key: this.name, val: res}; // by storing tupples we make sure a null return is validly consistent too in expansions
-        val = res;
-    }
+VarSpec.prototype.iterate = function(context, encoder, adder) {
+    var val = context.get(this.name);
 
     var isArr = false;
     var isObj = false;
