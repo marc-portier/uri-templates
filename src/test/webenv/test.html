@@ -349,6 +349,26 @@ test("dereference nesting from context.", function() {
 });
 
 module("Extra: edge cases");
+test("variants of undefined", function() {
+    var context = {
+        "empty"        : "",
+        "novalue"      : null,
+        "emptylist"    : [],
+        "emptystruct"  : {}
+    }
+
+    var testset = {
+        "{empty}"       : "",
+        "{?empty}"      : "?empty=",
+        "{?novalue}"    : "",
+        "{?emptylist}"  : "",
+        "{?emptystruct}": ""
+    };
+    
+    assertSet(testset, context);
+});
+
+
 test("trimming escaped sequences", function() {
     var context = {
         "string"       : "!!!!!",
