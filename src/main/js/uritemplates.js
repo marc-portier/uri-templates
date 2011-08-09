@@ -28,10 +28,10 @@ CachingContext.prototype.get = function(key) {
             result = tupple.val;
         } else {
             result = val(this.raw);
-            this.cache[key] = {key: key, val: result}; // by storing tupples we make sure a null return is validly consistent too in expansions
+            this.cache[key] = {key: key, val: result}; 
+            // NOTE: by storing tupples we make sure a null return is validly consistent too in expansions
         }
     }
-    
     return result;
 }
 
@@ -279,8 +279,6 @@ function buildVarSpec (name, expl, part, nums) {
 };
 
 function VarSpec (name, vhfn, nums) {
-//TODO read spec on what makes a correct name: if no pcnt_encoded is allowed, no need to unescape
-// in the other case: fix the regexp for valid templates so we actually get here.
     this.name = unescape(name); 
     this.valueHandler = vhfn;
     this.maxLength = nums;
@@ -297,7 +295,7 @@ VarSpec.prototype.addValues = function(context, encoder, adder) {
 
 //----------------------------------------------parsing logic
 // How each varspec should look like
-var VARSPEC_RE=/([A-Za-z0-9_][A-Za-z0-9_.]*)((\*)|(:)([0-9]+))?/;
+var VARSPEC_RE=/([^*:]*)((\*)|(:)([0-9]+))?/;
 
 var match2varspec = function(m) {
     var name = m[1];
@@ -313,7 +311,7 @@ var match2varspec = function(m) {
 var LISTSEP=",";
 
 // How each template should look like
-var TEMPL_RE=/({([+.;?/])?(([A-Za-z0-9_][A-Za-z0-9_.]*)(\*|:([0-9]+))?(,([A-Za-z0-9_][A-Za-z0-9_.]*)(\*|:([0-9]+))?)*)})/g;
+var TEMPL_RE=/({([+.;?/])?(([^.*:,{}|@!][^*:,{}]*)(\*|:([0-9]+))?(,([^.*:,{}][^*:,{}]*)(\*|:([0-9]+))?)*)})/g;
 // Note: reserved operators: |!@ are left out of the regexp in order to make those templates degrade into literals 
 // (as expected by the spec - see tests.html "reserved operators")
 
