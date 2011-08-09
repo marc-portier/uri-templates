@@ -290,7 +290,9 @@ module("Extra: historic relicts of previous drafts that still seem useful.");
 
 test("Extra: reserved operators", function() {
     /*
-    The operator characters pipe ("|"), exclamation ("!"), and at-sign("@") are reserved for future extensions.
+    The operator characters equals ("="), comma (","), exclamation ("!"), at-sign ("@"), and pipe ("|") are reserved for future extensions.
+    
+    Draft 0.4 mentioned about these:
     A processor that unexpectedly encounters such an extension operator SHOULD pass the
     expression through unexpanded and MAY also indicate a warning to the invoking application.
     */
@@ -301,7 +303,9 @@ test("Extra: reserved operators", function() {
     var testset = {
         "{@var}"          : "{@var}",
         "{|var}"          : "{|var}",
-        "{!var}"          : "{!var}"
+        "{!var}"          : "{!var}",
+        "{=var}"          : "{=var}",
+        "{,var}"          : "{,var}"
     };
     
     assertSet(testset, context);

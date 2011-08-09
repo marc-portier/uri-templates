@@ -330,7 +330,7 @@ var match2varspec = function(m) {
 var LISTSEP=",";
 
 // How each template should look like
-var TEMPL_RE=/({([+.;?/])?(([^.*:,{}|@!][^*:,{}]*)(\*|:([0-9]+))?(,([^.*:,{}][^*:,{}]*)(\*|:([0-9]+))?)*)})/g;
+var TEMPL_RE=/({([+.;?/])?(([^.*:,{}|@!=$()][^*:,{}$()]*)(\*|:([0-9]+))?(,([^.*:,{}][^*:,{}]*)(\*|:([0-9]+))?)*)})/g;
 // Note: reserved operators: |!@ are left out of the regexp in order to make those templates degrade into literals 
 // (as expected by the spec - see tests.html "reserved operators")
 
