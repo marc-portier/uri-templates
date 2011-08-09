@@ -338,7 +338,7 @@ test("dereference nesting from context.", function() {
     var context = {
         "a.b"       : "value-at-a.b",
         "x"         : { "y": "value-at-y-via-x"}
-    }
+    };
 
     var testset = {
         "{a.b}"       : "value-at-a.b",
@@ -348,6 +348,32 @@ test("dereference nesting from context.", function() {
     assertSet(testset, context);
 });
 
+test("dereference preference for longest leadkey.", function() {
+
+    var context = {
+        "a.b"       : { "c"   : "longest-leadkey"},
+        "a"         : { "b.c" : "second-best"}, 
+        "x"         : { "y.z" : "longest-leadkey",
+                        "y"   : { "z": "second-best"}
+                      },
+        "1"         : { "2.3" : {"4"   : "2nd best"},
+                        "2"   : {"3.4" : "3rd best",
+                                 "3"   : {"4": "last choice"}
+                                 }
+                      },
+        "1.2"        : { "3"  : {"4": "longest-leadkey"} }
+    };
+
+    var testset = {
+        "{a.b.c}"       : "longest-leadkey",
+        "{x.y.z}"       : "longest-leadkey",
+        "{1.2.3.4}"     : "longest-leadkey"
+    };
+    
+    assertSet(testset, context);
+});
+
+
 module("Extra: edge cases");
 test("variants of undefined", function() {
     var context = {
@@ -355,7 +381,7 @@ test("variants of undefined", function() {
         "novalue"      : null,
         "emptylist"    : [],
         "emptystruct"  : {}
-    }
+    };
 
     var testset = {
         "{empty}"       : "",
@@ -373,7 +399,7 @@ test("trimming escaped sequences", function() {
     var context = {
         "string"       : "!!!!!",
         "list"         : ["!","!","!","!","!"]
-    }
+    };
 
     var testset = {
         "{string:1}"   : "%21",
@@ -393,7 +419,7 @@ test("%encoded context names", function() {
     var context = {
         "!":  "exclamation-mark",
         "%21": "encoded exclamation-mark"
-    }
+    };
 
     var testset = {
         "{!}"   : "{!}",

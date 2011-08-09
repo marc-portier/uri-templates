@@ -19,7 +19,7 @@ function CachingContext(context) {
 }
 
 CachingContext.prototype.get = function(key) {
-    var val = this.raw[key];
+    var val = this.lookupRaw(key);
     var result = val;
     
     if ($.isFunction(val)) { // check function-result-cache
@@ -34,6 +34,30 @@ CachingContext.prototype.get = function(key) {
     }
     return result;
 }
+
+CachingContext.prototype.lookupRaw = function(key) {
+    return CachingContext.lookup(this, this.raw, key);
+}
+
+CachingContext.lookup = function(me, context, key) {
+    var result = context[key];
+    if (result !== undefined) {
+        return result;
+    } else {
+        var keyparts = key.split('.');
+        var keysplits = keyparts.length - 1;
+        for (var i = 0; i<keysplits; i++) {
+            var leadKey = keyparts.slice(0, keysplits - i).join('.');
+            var trailKey = keyparts.slice(-i-1).join('.');
+            var leadContext = context[leadKey];
+            if (leadContext !== undefined) {
+                return CachingContext.lookup(me, leadContext, trailKey);
+            }
+        }
+        return undefined;
+    }
+}
+
 
 function UriTemplate(set) {
     this.set = set;
@@ -213,8 +237,6 @@ function objectToString(obj, encoder, maxLength) {
 
 
 function simpleValueHandler(me, val, valprops, encoder, adder) {
-    // convert composite to string
-    // encode complete and add
     var result;
     
     if (valprops.isArr) {
@@ -230,9 +252,6 @@ function simpleValueHandler(me, val, valprops, encoder, adder) {
 }
 
 function explodeValueHandler(me, val, valprops, encoder, adder) {
-    //step through composite 
-    // add encoded vals
-    
     if (valprops.isArr) {
         var cnt = val.length;
         for (var i=0; i<cnt; i++) {
