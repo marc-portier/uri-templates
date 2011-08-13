@@ -422,12 +422,13 @@ test("%encoded context names", function() {
 
     var context = {
         "!":  "exclamation-mark",
-        "%21": "encoded exclamation-mark"
+        "%21": "encoded-exclamation-mark"
     };
 
     var testset = {
-        "{!}"   : "{!}",
-        "{%21}" : "exclamation-mark"
+        "{!}"    : "{!}",
+        "{%21}"  : "exclamation-mark",
+        "{%2521}": "encoded-exclamation-mark"
     };
     
     assertSet(testset, context);
