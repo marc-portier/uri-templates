@@ -1,16 +1,46 @@
 <html>
 <head>
   <script src="./js/jquery-1.6.2.min.js"></script>
-  <script type="text/javascript" src="../../../target/js/uritemplates-parser.js"></script>
+  <script type="text/javascript" src="../../main/js/uritemplates.js"></script>
+  <script type="text/javascript">
+    $().ready(function() {
+        function expandWithContext() {
+            var context = "";
+            eval("context = " + $('#context').val());
+            var template = $('#template').val();
+            
+            var result = $.uritemplate(template).expand(context);
+            
+            $("#expansion").html(result);
+        };
+        
+        $('#expand').click(expandWithContext);
+    });
+  </script>
 </head>
 <body>
-<h2>URI Templates tester</h2>
-TODO: form to enter both #contextvars and #uri-templates to test.
-Have to think about sensible UI for this.
+  <h2>URI Templates tester</h2>
+  <P>
+    Provide some variables in javascript:
+  </p>
+  <textarea id="context" rows="8" cols="80">
+    {
+        "x"  : 1024,
+        "y"  :  768
+    }
+  </textarea>
+  <p>
+    Describe your template
+  </p>
+  <input id="template" value="http://example.com/drawscreen{?x,y}" size="80"/>
+  <button id="expand">(expand!)</button>
+  <hr />
+  <pre id="expansion"></pre>
 
-<h2>Automated tests</h2>
-<ul>
-  <li>QUnit <a href="test.html">test</a> page.</li>
-</ul>
+
+  <h2>Automated tests</h2>
+  <ul>
+    <li>QUnit <a href="test.html">test</a> page.</li>
+  </ul>
 </body>
 </html>
