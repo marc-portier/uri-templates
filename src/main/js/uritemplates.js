@@ -1,5 +1,5 @@
 /*
-UriTemapltes Draft 0.5  Tempolate Processor
+UriTemplates Draft 0.6  Template Processor
 (c) marc.portier@gmail.com - 2011
 Distributed under ALPv2 
 */
@@ -10,8 +10,9 @@ Distributed under ALPv2
 
 /**
  * Create a runtime cache around retrieved values from the context.
- * This allows for dynamic (function) results to be kept the same for multiple expansions within one template
- * Uses key-value tupples in stead to be able to cache null values as well
+ * This allows for dynamic (function) results to be kept the same for multiple 
+ * occuring expansions within one template.
+ * Note: Uses key-value tupples to be able to cache null values as well.
  */
 function CachingContext(context) {
     this.raw = context;
@@ -72,6 +73,10 @@ UriTemplate.prototype.expand = function(context) {
     return res;
 }
 
+//TODO: change since draft-0.6 about characters in literals
+/* extract:
+The characters outside of expressions in a URI Template string are intended to be copied literally to the URI-reference if the character is allowed in a URI (reserved / unreserved / pct-encoded) or, if not allowed, copied to the URI-reference in its UTF-8 pct-encoded form.
+*/
 function Literal(txt ) {
     this.txt = txt;
 }
@@ -119,11 +124,17 @@ var simpleConf = {
 var reservedConf = { 
     prefix : "",     joiner : ",",     encode : encodeReserved,  builder : addUnNamed
 };
+var fragmentConf = { 
+    prefix : "#",    joiner : ",",     encode : encodeReserved,  builder : addUnNamed
+};
 var pathParamConf = { 
     prefix : ";",    joiner : ";",     encode : encodeNormal,    builder : addLabeled
 };
 var formParamConf = { 
     prefix : "?",    joiner : "&",     encode : encodeNormal,    builder : addNamed
+};
+var formContinueConf = { 
+    prefix : "&",    joiner : "&",     encode : encodeNormal,    builder : addNamed
 };
 var pathHierarchyConf = { 
     prefix : "/",    joiner : "/",     encode : encodeNormal,    builder : addUnNamed
@@ -138,8 +149,10 @@ function buildExpression(ops, vars) {
     switch(ops) {
         case ''  : conf = simpleConf; break;
         case '+' : conf = reservedConf; break;
+        case '#' : conf = fragmentConf; break;
         case ';' : conf = pathParamConf; break;
         case '?' : conf = formParamConf; break;
+        case '&' : conf = formContinueConf; break;
         case '/' : conf = pathHierarchyConf; break;
         case '.' : conf = labelConf; break;
         default  : throw "Unexpected operator: '"+ops+"'"; 
@@ -330,7 +343,7 @@ var match2varspec = function(m) {
 var LISTSEP=",";
 
 // How each template should look like
-var TEMPL_RE=/({([+.;?/])?(([^.*:,{}|@!=$()][^*:,{}$()]*)(\*|:([0-9]+))?(,([^.*:,{}][^*:,{}]*)(\*|:([0-9]+))?)*)})/g;
+var TEMPL_RE=/({([+#.;?&/])?(([^.*:,{}|@!=$()][^*:,{}$()]*)(\*|:([0-9]+))?(,([^.*:,{}][^*:,{}]*)(\*|:([0-9]+))?)*)})/g;
 // Note: reserved operators: |!@ are left out of the regexp in order to make those templates degrade into literals 
 // (as expected by the spec - see tests.html "reserved operators")
 

@@ -105,6 +105,9 @@ test("Section 1.2 'levels and expression types' -- Level 2", function() {
         "{+hello}"              : "Hello%20World!",
         "{+path}/here"          : "/foo/bar/here",
         "here?ref={+path}"      : "here?ref=/foo/bar",
+        "X{#var}"               : "X#value",
+        "X{#hello}"             : "X#Hello%20World!",
+        // below from draft-0.5 variant, still valid
         "up{+path}{var}/here"   : "up/foo/barvalue/here",
         "up{+empty}/here"       : "up/here",
         "up{+undef}/here"       : "up/here"
@@ -117,27 +120,35 @@ test("Section 1.2 'levels and expression types' -- Level 3", function() {
     var context = {"var": "value", "hello": "Hello World!", "empty": "", "undef": null, 
                    "path": "/foo/bar", "x": 1024, "y": "768"};
     var testset = {
-        "{x,y}"                 : "1024,768",
+        "map?{x,y}"             : "map?1024,768",
         "{x,hello,y}"           : "1024,Hello%20World%21,768",
+        "{+x,hello,y}"          : "1024,Hello%20World!,768",
+        "{+path,x}/here"        : "/foo/bar,1024/here", 
+        "{#x,hello,y}"          : "#1024,Hello%20World!,768",
+        "{#path,x}/here"        : "#/foo/bar,1024/here", 
+        "X{.var}"               : "X.value",
+        "X{.x,y}"               : "X.1024.768",
+        "{/var}"                : "/value",
+        "{/var,x}/here"         : "/value/1024/here",
+        "{;x,y}"                : ";x=1024;y=768",
+        "{;x,y,empty}"          : ";x=1024;y=768;empty",
+        "{?x,y}"                : "?x=1024&y=768",
+        "{?x,y,empty}"          : "?x=1024&y=768&empty=",
+        "?fixed=yes{&x}"        : "?fixed=yes&x=1024",
+        "{&x,y,empty}"          : "&x=1024&y=768&empty=",
+
+        // these come from the draft-0.5 variant (and were removed in 0.6) but still seem relevant
         "?{x,empty}"            : "?1024,",
         "?{x,undef}"            : "?1024",
         "?{undef,y}"            : "?768",
         "?{x,undef}"            : "?1024",
-        "{+x,hello,y}"          : "1024,Hello%20World!,768",
-        "{+path,x}/here"        : "/foo/bar,1024/here", 
-        "X{.var}"               : "X.value",
         "X{.empty}"             : "X.",
         "X{.undef}"             : "X",
-        "{/var}"                : "/value",
         "{/var,empty}"          : "/value/",
         "{/var,undef}"          : "/value",
-        "{/var,x}/here"         : "/value/1024/here",
-        "{;x,y}"                : ";x=1024;y=768",
-        "{;x,y,empty}"          : ";x=1024;y=768;empty",
         "{;x,y,undef}"          : ";x=1024;y=768",
-        "{?x,y}"                : "?x=1024&y=768",
-        "{?x,y,empty}"          : "?x=1024&y=768&empty=",
-        "{?x,y,undef}"          : "?x=1024&y=768"
+        "{?x,y,undef}"          : "?x=1024&y=768",
+        
     };
     
     assertSet(testset, context);
@@ -145,10 +156,11 @@ test("Section 1.2 'levels and expression types' -- Level 3", function() {
 
 
 test("Section 1.2 'levels and expression types' -- Level 4", function() {
-    var context = {"var": "value", "hello": "Hello World!", 
-                   "path": "/foo/bar", 
-                   "list": [ "red", "green", "blue" ],
-                   "keys": {"semi": ";", "dot": ".", "comma": ","}  };
+    var context = {"var"        : "value", "hello": "Hello World!", 
+                   "path"       : "/foo/bar", 
+                   "list"       : [ "red", "green", "blue" ],
+                   "keys"       : {"semi": ";", "dot": ".", "comma": ","},
+                   "empty_keys" : []  };
     var testset = {
         // String expansion with value modifiers         (Sec 3.2.2) 
         "{var:3}"               : "val",
@@ -163,31 +175,43 @@ test("Section 1.2 'levels and expression types' -- Level 4", function() {
         "{+list*}"              : "red,green,blue",
         "{+keys}"               : "semi,;,dot,.,comma,,",
         "{+keys*}"              : "semi=;,dot=.,comma=,",
-        //Label expansion, dot-prefixed                 (Sec 3.2.4) 
+        //Fragment expansion with value modifiers       (Sec 3.2.4) 
+        "{#path:6}/here"        : "#/foo/b/here",
+        "{#list}"               : "#red,green,blue",
+        "{#list*}"              : "#red,green,blue",
+        "{#keys}"               : "#semi,;,dot,.,comma,,",
+        "{#keys*}"              : "#semi=;,dot=.,comma=,",        
+        //Label expansion, dot-prefixed                 (Sec 3.2.5) 
         "X{.var:3}"             : "X.val",
         "X{.list}"              : "X.red,green,blue",
         "X{.list*}"             : "X.red.green.blue",
         "X{.keys}"              : "X.semi,%3B,dot,.,comma,%2C",
         "X{.keys*}"             : "X.semi=%3B.dot=..comma=%2C",
-        //Path segments, slash-prefixed                 (Sec 3.2.5) 
+        //Path segments, slash-prefixed                 (Sec 3.2.6) 
         "{/var:1,var}"          : "/v/value",
         "{/list}"               : "/red,green,blue",
         "{/list*}"              : "/red/green/blue",
         "{/list*,path:4}"       : "/red/green/blue/%2Ffoo",
         "{/keys}"               : "/semi,%3B,dot,.,comma,%2C",
         "{/keys*}"              : "/semi=%3B/dot=./comma=%2C",
-        //Path-style parameters, semicolon-prefixed     (Sec 3.2.6) 
+        //Path-style parameters, semicolon-prefixed     (Sec 3.2.7) 
         "{;hello:5}"            : ";hello=Hello",
         "{;list}"               : ";list=red,green,blue",
         "{;list*}"              : ";red;green;blue",
         "{;keys}"               : ";keys=semi,%3B,dot,.,comma,%2C",
         "{;keys*}"              : ";semi=%3B;dot=.;comma=%2C",
-        //Form-style query, ampersand-separated         (Sec 3.2.7) 
+        //Form-style query, ampersand-separated         (Sec 3.2.8) 
         "{?var:3}"              : "?var=val",
         "{?list}"               : "?list=red,green,blue",
         "{?list*}"              : "?list=red&list=green&list=blue",
         "{?keys}"               : "?keys=semi,%3B,dot,.,comma,%2C",
-        "{?keys*}"              : "?semi=%3B&dot=.&comma=%2C"
+        "{?keys*}"              : "?semi=%3B&dot=.&comma=%2C",
+        //Form-style query continuation                 (Sec 3.2.9) 
+        "{&var:3}"              : "&var=val",
+        "{&list}"               : "&list=red,green,blue",
+        "{&list*}"              : "&list=red&list=green&list=blue",
+        "{&keys}"               : "&keys=semi,%3B,dot,.,comma,%2C",
+        "{&keys*}"              : "&semi=%3B&dot=.&comma=%2C"
     };
     
     assertSet(testset, context);
@@ -206,14 +230,54 @@ test("Section 2.4.1 'prefix values'", function() {
     assertSet(testset, context);
 });
   
-
-test("Section 3.2.2 'simple string expansion'", function() {
-    var context = {"foo": "fred" };
+test("Section 2.4.2 'composite values'", function() {
+    var context = {"address": {"city" : "Newport Beach", "state": "CA" }};
     var testset = {
-        "{foo}"                 : "fred",
-        "{foo,foo}"             : "fred,fred",
-        "{bar,foo}"             : "fred",
-        "{bar}"                 : ""
+        "/mapper{?address*}"     : "/mapper?city=Newport%20Beach&state=CA"
+    };
+    
+    assertSet(testset, context);
+});
+
+var TESTCONTEXT = {
+    "dom"         : "example.com",
+    "dub"         : "me/too",
+    "foo"         : "That's right!",
+    "hello"       : "Hello World!",
+    "half"        : "50%",
+    "var"         : "value",
+    "who"         : "fred",
+    "base"        : "http://example.com/home/",
+    "path"        : "/foo/bar",
+    "list"        : [ "red", "green", "blue" ],
+    "keys"        : {"semi" : ";", "dot" : ".", "comma" : ","},
+    "v"           : "6",
+    "x"           : "1024",
+    "y"           : "768",
+    "empty"       : "",
+    "empty_keys"  : [],
+    "undef"       : null
+};
+      
+test("Section 3.2.2 'simple string expansion'", function() {
+    var context = TESTCONTEXT;
+    var testset = {
+        "{var}"       : "value",
+        "{hello}"     : "Hello%20World%21",
+        "{half}"      : "50%25",
+        "O{empty}X"   : "OX",
+        "O{undef}X"   : "OX",
+        "{x,y}"       : "1024,768",
+        "{x,hello,y}" : "1024,Hello%20World%21,768",
+        "?{x,empty}"  : "?1024,",
+        "?{x,undef}"  : "?1024",
+        "?{undef,y}"  : "?768",
+        "{var:3}"     : "val",
+        "{var:30}"    : "value",
+        "{list}"      : "red,green,blue",
+        "{list*}"     : "red,green,blue",
+        "{keys}"      : "semi,%3B,dot,.,comma,%2C",
+        "{keys*}"     : "semi=%3B,dot=.,comma=%2C"
     };
     
     assertSet(testset, context);
@@ -221,64 +285,159 @@ test("Section 3.2.2 'simple string expansion'", function() {
 
   
 test("Section 3.2.3 'reserved expansion'", function() {
-    var context = {"foo": "That's right!", "base" : "http://example.com/home/" };
+    var context = TESTCONTEXT;
     var testset = {
-        "{foo}"                 : "That%27s%20right%21",
-        "{+foo}"                : "That%27s%20right!",
-        "{base}index"           : "http%3A%2F%2Fexample.com%2Fhome%2Findex",
-        "{+base}index"          : "http://example.com/home/index"
+        "{foo}"               : "That%27s%20right%21",
+        "{+foo}"              : "That%27s%20right!",
+        "{+half}"             : "50%25",
+
+        "{base}index"         : "http%3A%2F%2Fexample.com%2Fhome%2Findex",
+        "{+base}index"        : "http://example.com/home/index",
+        "{+var}"              : "value",
+        "{+hello}"            : "Hello%20World!",
+        "O{+empty}X"          : "OX",
+        "O{+undef}X"          : "OX",
+
+        "{+path}/here"        : "/foo/bar/here",
+        "here?ref={+path}"    : "here?ref=/foo/bar",
+        "up{+path}{var}/here" : "up/foo/barvalue/here",
+        "{+x,hello,y}"        : "1024,Hello%20World!,768",
+        "{+path,x}/here"      : "/foo/bar,1024/here",
+
+        "{+path:6}/here"      : "/foo/b/here",
+        "{+list}"             : "red,green,blue",
+        "{+list*}"            : "red,green,blue",
+        "{+keys}"             : "semi,;,dot,.,comma,,",
+        "{+keys*}"            : "semi=;,dot=.,comma=,"
     };
     
     assertSet(testset, context);
 });
     
 
-test("Section 3.2.4 'label expansion'", function() {
-    var context = {"foo": "fred" };
+test("Section 3.2.4 'fragment expansion'", function() {
+    var context = TESTCONTEXT;
     var testset = {
-        "{.foo}"                 : ".fred",
-        "{.foo,foo}"             : ".fred.fred",
-        "{.bar,foo}"             : ".fred",
-        "{.bar}"                 : ""
+        "{#foo}"             : "#That%27s%20right!",
+        "{#var}"             : "#value",
+        "{#hello}"           : "#Hello%20World!",
+        "{#half}"            : "#50%25",
+        "foo{#empty}"        : "foo#",
+        "foo{#undef}"        : "foo",
+        "{#x,hello,y}"       : "#1024,Hello%20World!,768",
+        "{#path,x}/here"     : "#/foo/bar,1024/here",
+        "{#path:6}/here"     : "#/foo/b/here",
+        "{#list}"            : "#red,green,blue",
+        "{#list*}"           : "#red,green,blue",
+        "{#keys}"            : "#semi,;,dot,.,comma,,",
+        "{#keys*}"           : "#semi=;,dot=.,comma=,"
+    };
+    
+    assertSet(testset, context);
+});
+
+
+test("Section 3.2.5 'label expansion'", function() {
+    var context = TESTCONTEXT;
+    var testset = {
+        "{.who}"             : ".fred",
+        "{.who,who}"         : ".fred.fred",
+        "{.half,who}"        : ".50%25.fred",
+        "www{.dom}"          : "www.example.com",
+        "X{.var}"            : "X.value",
+        "X{.empty}"          : "X.",
+        "X{.undef}"          : "X",
+        "X{.var:3}"          : "X.val",
+        "X{.list}"           : "X.red,green,blue",
+        "X{.list*}"          : "X.red.green.blue",
+        "X{.keys}"           : "X.semi,%3B,dot,.,comma,%2C",
+        "X{.keys*}"          : "X.semi=%3B.dot=..comma=%2C",
+        "X{.empty_keys}"     : "X",
+        "X{.empty_keys*}"    : "X"
     };
 
     assertSet(testset, context);
 });
 
 
-test("Section 3.2.5 'path segment expansion'", function() {
-    var context = {"foo": "fred" };
+test("Section 3.2.6 'path segment expansion'", function() {
+    var context = TESTCONTEXT;
     var testset = {
-        "{/foo}"                 : "/fred",
-        "{/foo,foo}"             : "/fred/fred",
-        "{/bar,foo}"             : "/fred",
-        "{/bar}"                 : ""
+        "{/who}"             : "/fred",
+        "{/who,who}"         : "/fred/fred",
+        "{/half,who}"        : "/50%25/fred",
+        "{/who,dub}"         : "/fred/me%2Ftoo",
+        "{/var}"             : "/value",
+        "{/var,empty}"       : "/value/",
+        "{/var,undef}"       : "/value",
+        "{/var,x}/here"      : "/value/1024/here",
+        "{/var:1,var}"       : "/v/value",
+        "{/list}"            : "/red,green,blue",
+        "{/list*}"           : "/red/green/blue",
+        "{/list*,path:4}"    : "/red/green/blue/%2Ffoo",
+        "{/keys}"            : "/semi,%3B,dot,.,comma,%2C",
+        "{/keys*}"           : "/semi=%3B/dot=./comma=%2C"
+
     };
 
     assertSet(testset, context);
 });
 
    
-test("Section 3.2.6 'matrix parameter expansion'", function() {
-    var context = {"foo": "fred" };
+test("Section 3.2.7 'path-style parameter expansion'", function() {
+    var context = TESTCONTEXT;
     var testset = {
-        "{;foo}"                 : ";foo=fred",
-        "{;foo,foo}"             : ";foo=fred;foo=fred",
-        "{;bar,foo}"             : ";foo=fred",
-        "{;bar}"                 : ""
+        "{;who}"             : ";who=fred",
+        "{;half}"            : ";half=50%25",
+        "{;empty}"           : ";empty",
+        "{;v,empty,who}"     : ";v=6;empty;who=fred",
+        "{;v,bar,who}"       : ";v=6;who=fred",
+        "{;x,y}"             : ";x=1024;y=768",
+        "{;x,y,empty}"       : ";x=1024;y=768;empty",
+        "{;x,y,undef}"       : ";x=1024;y=768",
+        "{;hello:5}"         : ";hello=Hello",
+        "{;list}"            : ";list=red,green,blue",
+        "{;list*}"           : ";red;green;blue",
+        "{;keys}"            : ";keys=semi,%3B,dot,.,comma,%2C",
+        "{;keys*}"           : ";semi=%3B;dot=.;comma=%2C"        
     };
 
     assertSet(testset, context);
 });
 
 
-test("Section 3.2.7 'form parameter expansion'", function() {
-    var context = {"foo": "fred" };
+test("Section 3.2.8 'form-style parameter expansion'", function() {
+    var context = TESTCONTEXT;
     var testset = {
-        "{?foo}"                 : "?foo=fred",
-        "{?foo,foo}"             : "?foo=fred&foo=fred",
-        "{?bar,foo}"             : "?foo=fred",
-        "{?bar}"                 : ""
+        "{?who}"             : "?who=fred",
+        "{?half}"            : "?half=50%25",
+        "{?x,y}"             : "?x=1024&y=768",
+        "{?x,y,empty}"       : "?x=1024&y=768&empty=",
+        "{?x,y,undef}"       : "?x=1024&y=768",
+        "{?var:3}"           : "?var=val",
+        "{?list}"            : "?list=red,green,blue",
+        "{?list*}"           : "?list=red&list=green&list=blue",
+        "{?keys}"            : "?keys=semi,%3B,dot,.,comma,%2C",
+        "{?keys*}"           : "?semi=%3B&dot=.&comma=%2C"
+    };
+
+    assertSet(testset, context);
+});      
+
+
+test("Section 3.2.9 'form-style query continuation'", function() {
+    var context = TESTCONTEXT;
+    var testset = {
+        "{&who}"             : "&who=fred",
+        "{&half}"            : "&half=50%25",
+        "{&x,y}"             : "&x=1024&y=768",
+        "{&x,y,empty}"       : "&x=1024&y=768&empty=",
+        "{&x,y,undef}"       : "&x=1024&y=768",
+        "{&var:3}"           : "&var=val",
+        "{&list}"            : "&list=red,green,blue",
+        "{&list*}"           : "&list=red&list=green&list=blue",
+        "{&keys}"            : "&keys=semi,%3B,dot,.,comma,%2C",
+        "{&keys*}"           : "&semi=%3B&dot=.&comma=%2C"
     };
 
     assertSet(testset, context);
@@ -337,6 +496,8 @@ test("evaluate functions from context.", function() {
     assertSet(testset, context);
 });
 
+
+//TODO: dereferencing is NOT a part of the spec, should be removed!!
 test("dereference nesting from context.", function() {
 
     var context = {
@@ -417,7 +578,16 @@ test("trimming escaped sequences", function() {
     assertSet(testset, context);
 });
 
-
+//TODO: this seems to have changed
+/* extract:
+    A varname MAY contain one or more pct-encoded triplets.  These	
+    triplets are considered an essential part of the variable name and	
+    are not decoded during processing.  A varname containing pct-encoded	
+    characters is not the same variable as a varname with those same	
+    characters decoded.  Applications that provide URI Templates are	
+    expected to be consistent in their use of pct-encoding within	
+    variable names.
+*/
 test("%encoded context names", function() {
 
     var context = {
