@@ -159,8 +159,7 @@ test("Section 1.2 'levels and expression types' -- Level 4", function() {
     var context = {"var"        : "value", "hello": "Hello World!", 
                    "path"       : "/foo/bar", 
                    "list"       : [ "red", "green", "blue" ],
-                   "keys"       : {"semi": ";", "dot": ".", "comma": ","},
-                   "empty_keys" : []  };
+                   "keys"       : {"semi": ";", "dot": ".", "comma": ","}};
     var testset = {
         // String expansion with value modifiers         (Sec 3.2.2) 
         "{var:3}"               : "val",
@@ -242,7 +241,6 @@ test("Section 2.4.2 'composite values'", function() {
 var TESTCONTEXT = {
     "dom"         : "example.com",
     "dub"         : "me/too",
-    "foo"         : "That's right!",
     "hello"       : "Hello World!",
     "half"        : "50%",
     "var"         : "value",
@@ -287,14 +285,12 @@ test("Section 3.2.2 'simple string expansion'", function() {
 test("Section 3.2.3 'reserved expansion'", function() {
     var context = TESTCONTEXT;
     var testset = {
-        "{foo}"               : "That%27s%20right%21",
-        "{+foo}"              : "That%27s%20right!",
+        "{+var}"              : "value",
+        "{+hello}"            : "Hello%20World!",
         "{+half}"             : "50%25",
 
         "{base}index"         : "http%3A%2F%2Fexample.com%2Fhome%2Findex",
         "{+base}index"        : "http://example.com/home/index",
-        "{+var}"              : "value",
-        "{+hello}"            : "Hello%20World!",
         "O{+empty}X"          : "OX",
         "O{+undef}X"          : "OX",
 
@@ -318,7 +314,6 @@ test("Section 3.2.3 'reserved expansion'", function() {
 test("Section 3.2.4 'fragment expansion'", function() {
     var context = TESTCONTEXT;
     var testset = {
-        "{#foo}"             : "#That%27s%20right!",
         "{#var}"             : "#value",
         "{#hello}"           : "#Hello%20World!",
         "{#half}"            : "#50%25",
