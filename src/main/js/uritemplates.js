@@ -92,9 +92,10 @@ function encodeNormal(val) {
     return encodeURIComponent(val).replace(RESERVEDCHARS_RE, function(s) {return escape(s)} );
 }
 
-var SELECTEDCHARS_RE = new RegExp("[\"']","g");
+//var SELECTEDCHARS_RE = new RegExp("[]","g");
 function encodeReserved(val) {
-    return encodeURI(val).replace(SELECTEDCHARS_RE, function(s) {return escape(s)} );
+    //return encodeURI(val).replace(SELECTEDCHARS_RE, function(s) {return escape(s)} );
+    return encodeURI(val); // no need for additional replace is selected-chars is empty
 }
 
 

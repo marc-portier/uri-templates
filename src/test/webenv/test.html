@@ -573,6 +573,25 @@ test("trimming escaped sequences", function() {
     assertSet(testset, context);
 });
 
+test("escape samples", function() {
+    // sample for comment from http://lists.w3.org/Archives/Public/uri/2011Sep/0002.html
+    var context = {
+        "foo"       : "That's right!",
+        "hello"     : "Hello World!"
+    };
+
+    var testset = {
+        "{foo}"       : "That%27s%20right%21",
+        "{+foo}"       : "That's%20right!",
+        "{#foo}"       : "#That's%20right!",
+        "{hello}"      : "Hello%20World%21",
+        "{+hello}"     : "Hello%20World!",
+        "{#hello}"     : "#Hello%20World!",
+    };
+    
+    assertSet(testset, context);
+});
+
 //TODO: this seems to have changed
 /* extract:
     A varname MAY contain one or more pct-encoded triplets.  These	
