@@ -25,7 +25,7 @@ CachingContext.prototype.get = function(key) {
     
     if ($.isFunction(val)) { // check function-result-cache
         var tupple = this.cache[key];
-        if (tupple != null) { 
+        if (tupple !== null && tupple !== undefined) { 
             result = tupple.val;
         } else {
             result = val(this.raw);
@@ -34,11 +34,11 @@ CachingContext.prototype.get = function(key) {
         }
     }
     return result;
-}
+};
 
 CachingContext.prototype.lookupRaw = function(key) {
     return CachingContext.lookup(this, this.raw, key);
-}
+};
 
 CachingContext.lookup = function(me, context, key) {
     var result = context[key];
@@ -46,8 +46,8 @@ CachingContext.lookup = function(me, context, key) {
         return result;
     } else {
         var keyparts = key.split('.');
-        var keysplits = keyparts.length - 1;
-        for (var i = 0; i<keysplits; i++) {
+        var i = 0, keysplits = keyparts.length - 1;
+        for (i = 0; i<keysplits; i++) {
             var leadKey = keyparts.slice(0, keysplits - i).join('.');
             var trailKey = keyparts.slice(-i-1).join('.');
             var leadContext = context[leadKey];
@@ -57,21 +57,22 @@ CachingContext.lookup = function(me, context, key) {
         }
         return undefined;
     }
-}
+};
 
 
 function UriTemplate(set) {
     this.set = set;
-};
+}
+
 UriTemplate.prototype.expand = function(context) {
     var cache = new CachingContext(context);
     var res = "";
-    var cnt = this.set.length;
-    for (var i = 0; i<cnt; i++ ) {
+    var i = 0, cnt = this.set.length;
+    for (i = 0; i<cnt; i++ ) {
         res += this.set[i].expand(cache);
     }
     return res;
-}
+};
 
 //TODO: change since draft-0.6 about characters in literals
 /* extract:
@@ -89,7 +90,7 @@ Literal.prototype.expand = function() {
 
 var RESERVEDCHARS_RE = new RegExp("[:/?#\\[\\]@!$&()*+,;=']","g");
 function encodeNormal(val) {
-    return encodeURIComponent(val).replace(RESERVEDCHARS_RE, function(s) {return escape(s)} );
+    return encodeURIComponent(val).replace(RESERVEDCHARS_RE, function(s) {return escape(s);} );
 }
 
 //var SELECTEDCHARS_RE = new RegExp("[]","g");
@@ -104,8 +105,9 @@ function addUnNamed(name, key, val) {
 }
 
 function addNamed(name, key, val) {
-    if (!key || key.length == 0) 
+    if (!key || key.length === 0) {
         key = name;
+    }
     return key + (key.length > 0 ? "=" : "") + val;
 }
 
@@ -113,8 +115,9 @@ function addLabeled(name, key, val, noName) {
     noName = noName || false;
     if (noName) { name = ""; }
     
-    if (!key || key.length == 0) 
+    if (!key || key.length === 0)  {
         key = name;
+    }
     return key + (key.length > 0 && val ? "=" : "") + val;
 }
 
@@ -145,7 +148,12 @@ var labelConf = {
 };
 
 
-function buildExpression(ops, vars) {
+function Expression(conf, vars ) {
+    $.extend(this, conf);
+    this.vars = vars;
+}
+
+Expression.build = function(ops, vars) {
     var conf;
     switch(ops) {
         case ''  : conf = simpleConf; break;
@@ -159,11 +167,6 @@ function buildExpression(ops, vars) {
         default  : throw "Unexpected operator: '"+ops+"'"; 
     }
     return new Expression(conf, vars);
-}
-
-function Expression(conf, vars ) {
-    $.extend(this, conf);
-    this.vars = vars;
 };
 
 Expression.prototype.expand = function(context) {
@@ -171,12 +174,13 @@ Expression.prototype.expand = function(context) {
     var nextjoiner = this.joiner;
     var buildSegment = this.builder;
     var res = "";
-    var cnt = this.vars.length;
-    for (var i = 0 ; i< cnt; i++) {
+    var i = 0, cnt = this.vars.length;
+    
+    for (i = 0 ; i< cnt; i++) {
         var varspec = this.vars[i];
         varspec.addValues(context, this.encode, function(key, val, noName) {
             var segm = buildSegment(varspec.name, key, val, noName);
-            if (segm != null) {
+            if (segm !== null && segm !== undefined) {
                 res += joiner + segm;
                 joiner = nextjoiner;
             }
@@ -187,13 +191,14 @@ Expression.prototype.expand = function(context) {
 
 
 
+var UNBOUND = {};
 
 /** 
  * Helper class to help grow a string of (possibly encoded) parts until limit is reached
  */
 function Buffer(limit) {
     this.str = "";
-    if (limit == UNBOUND) {
+    if (limit === UNBOUND) {
         this.appender = Buffer.UnboundAppend;
     } else {
         this.len = 0;
@@ -204,13 +209,13 @@ function Buffer(limit) {
 
 Buffer.prototype.append = function(part, encoder) {
     return this.appender(this, part, encoder);
-}
+};
 
 Buffer.UnboundAppend = function(me, part, encoder) {
     part = encoder ? encoder(part) : part;
     me.str += part;
     return me;
-}
+};
 
 Buffer.BoundAppend = function(me, part, encoder) {
     part = part.substring(0, me.limit - me.len);
@@ -219,16 +224,16 @@ Buffer.BoundAppend = function(me, part, encoder) {
     part = encoder ? encoder(part) : part;
     me.str += part;
     return me;
-}
+};
 
 
 function arrayToString(arr, encoder, maxLength) {
     var buffer = new Buffer(maxLength);    
     var joiner = "";
 
-    var cnt = arr.length;
-    for (var i=0; i<cnt; i++) {
-        if (arr[i] != null) {
+    var i = 0, cnt = arr.length;
+    for (i=0; i<cnt; i++) {
+        if (arr[i] !== null && arr[i] !== undefined) {
             buffer.append(joiner).append(arr[i], encoder);
             joiner = ",";
         }
@@ -239,11 +244,14 @@ function arrayToString(arr, encoder, maxLength) {
 function objectToString(obj, encoder, maxLength) {
     var buffer = new Buffer(maxLength);    
     var joiner = "";
+    var k;
 
     for (k in obj) {
-        if (obj[k] != null) {
-            buffer.append(joiner + k + ',').append(obj[k], encoder);
-            joiner = ",";
+        if (obj.hasOwnProperty(k) ) {
+            if (obj[k] !== null && obj[k] !== undefined) {
+                buffer.append(joiner + k + ',').append(obj[k], encoder);
+                joiner = ",";
+            }
         }
     }
     return buffer.str;
@@ -256,7 +264,7 @@ function simpleValueHandler(me, val, valprops, encoder, adder) {
     if (valprops.isArr) {
         result = arrayToString(val, encoder, me.maxLength);
     } else if (valprops.isObj) {
-        result = objectToString(val, encoder, me.maxLength)
+        result = objectToString(val, encoder, me.maxLength);
     } else {
         var buffer = new Buffer(me.maxLength);
         result = buffer.append(val, encoder).str;
@@ -267,13 +275,16 @@ function simpleValueHandler(me, val, valprops, encoder, adder) {
 
 function explodeValueHandler(me, val, valprops, encoder, adder) {
     if (valprops.isArr) {
-        var cnt = val.length;
-        for (var i=0; i<cnt; i++) {
+        var i = 0, cnt = val.length;
+        for (i = 0; i<cnt; i++) {
             adder("", encoder(val[i]), true );
         }
     } else if (valprops.isObj) {
+        var k;
         for (k in val) {
-            adder(k, encoder(val[k]) );
+            if (val.hasOwnProperty(k)) {
+                adder(k, encoder(val[k]) );
+            }
         }
     } else { // explode-requested, but single value
         adder("", encoder(val));
@@ -285,25 +296,32 @@ function valueProperties(val) {
     var isObj = false;
     var isUndef = true;  //note: "" is empty but not undef
     
-    if (val != null) {
+    if (val !== null && val !== undefined) {
         isArr = (val.constructor === Array);
         isObj = (val.constructor === Object);
-        isUndef = false || (isArr && val.length == 0) || (isObj && $.isEmptyObject(val));
+        isUndef = (isArr && val.length === 0) || (isObj && $.isEmptyObject(val));
     } 
     
     return {isArr: isArr, isObj: isObj, isUndef: isUndef};
 }
 
 
-var UNBOUND = {};
-function buildVarSpec (name, expl, part, nums) {
+function VarSpec (name, vhfn, nums) {
+    this.name = unescape(name); 
+    this.valueHandler = vhfn;
+    this.maxLength = nums;
+}
+
+
+VarSpec.build = function(name, expl, part, nums) {
     var valueHandler, valueModifier;
     
     if (!!expl) { //interprete as boolean
         valueHandler = explodeValueHandler;
-    } else 
+    } else {
         valueHandler = simpleValueHandler;
-        
+    }
+    
     if (!part) {
         nums = UNBOUND;
     }
@@ -311,18 +329,13 @@ function buildVarSpec (name, expl, part, nums) {
     return new VarSpec(name, valueHandler, nums);
 };
 
-function VarSpec (name, vhfn, nums) {
-    this.name = unescape(name); 
-    this.valueHandler = vhfn;
-    this.maxLength = nums;
-};
 
 VarSpec.prototype.addValues = function(context, encoder, adder) {
     var val = context.get(this.name);
     var valprops = valueProperties(val);
-    if (valprops.isUndef) return; // ignore empty values 
+    if (valprops.isUndef) { return; } // ignore empty values 
     this.valueHandler(this, val, valprops, encoder, adder);
-}
+};
     
     
 
@@ -334,9 +347,9 @@ var match2varspec = function(m) {
     var name = m[1];
     var expl = m[3];
     var part = m[4];
-    var nums = parseInt(m[5]);
+    var nums = parseInt(m[5], 10);
     
-    return buildVarSpec(name, expl, part, nums);
+    return VarSpec.build(name, expl, part, nums);
 };
 
 
@@ -344,7 +357,7 @@ var match2varspec = function(m) {
 var LISTSEP=",";
 
 // How each template should look like
-var TEMPL_RE=/({([+#.;?&/])?(([^.*:,{}|@!=$()][^*:,{}$()]*)(\*|:([0-9]+))?(,([^.*:,{}][^*:,{}]*)(\*|:([0-9]+))?)*)})/g;
+var TEMPL_RE=/(\{([+#.;?&\/])?(([^.*:,{}|@!=$()][^*:,{}$()]*)(\*|:([0-9]+))?(,([^.*:,{}][^*:,{}]*)(\*|:([0-9]+))?)*)\})/g;
 // Note: reserved operators: |!@ are left out of the regexp in order to make those templates degrade into literals 
 // (as expected by the spec - see tests.html "reserved operators")
 
@@ -353,16 +366,16 @@ var match2expression = function(m) {
     var expr = m[0];
     var ops = m[2] || '';
     var vars = m[3].split(LISTSEP);
-    var len = vars.length;
-    for (var i=0; i<len; i++) {
+    var i = 0, len = vars.length;
+    for (i = 0; i<len; i++) {
         var match;
-        if ( (match = vars[i].match(VARSPEC_RE)) == null) {
+        if ( (match = vars[i].match(VARSPEC_RE)) === null) {
             throw "unexpected parse error in varspec: " + vars[i];
         }
         vars[i] = match2varspec(match);
     }
     
-    return buildExpression(ops, vars);
+    return Expression.build(ops, vars);
 };
 
 
@@ -380,7 +393,7 @@ var parse = function(str) {
     var match;
     var pattern = TEMPL_RE;
     pattern.lastIndex = 0; // just to be sure
-    while ((match = pattern.exec(str)) != null) {
+    while ((match = pattern.exec(str)) !== null) {
         var newpos = match.index;
         pushLiteralSubstr(comp, str, lastpos, newpos);
         
@@ -402,4 +415,4 @@ var parse = function(str) {
 //------------------------------------- availability in jquery context
 $.extend({"uritemplate": parse});
 
-})(jQuery);
+}(jQuery));
