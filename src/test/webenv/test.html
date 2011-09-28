@@ -85,12 +85,10 @@ test("Section 1.1 'overview'", function() {
 });
 
 test("Section 1.2 'levels and expression types' -- Level 1", function() {
-    var context = {"var": "value", "hello": "Hello World!", "empty": "", "undef": null};
+    var context = {"var": "value", "hello": "Hello World!"};
     var testset = {
         "{var}"                   : "value",
-        "{hello}"                 : "Hello%20World%21",
-        "O{empty}X"               : "OX",
-        "O{undef}X"               : "OX"
+        "{hello}"                 : "Hello%20World%21"
     };
     assertSet(testset, context);
 });
@@ -202,13 +200,13 @@ test("Section 1.2 'levels and expression types' -- Level 4", function() {
         //Form-style query, ampersand-separated         (Sec 3.2.8) 
         "{?var:3}"              : "?var=val",
         "{?list}"               : "?list=red,green,blue",
-        "{?list*}"              : "?list=red&list=green&list=blue",
+        "{?list*}"              : "?red&green&blue",
         "{?keys}"               : "?keys=semi,%3B,dot,.,comma,%2C",
         "{?keys*}"              : "?semi=%3B&dot=.&comma=%2C",
         //Form-style query continuation                 (Sec 3.2.9) 
         "{&var:3}"              : "&var=val",
         "{&list}"               : "&list=red,green,blue",
-        "{&list*}"              : "&list=red&list=green&list=blue",
+        "{&list*}"              : "&red&green&blue",
         "{&keys}"               : "&keys=semi,%3B,dot,.,comma,%2C",
         "{&keys*}"              : "&semi=%3B&dot=.&comma=%2C"
     };
@@ -411,7 +409,7 @@ test("Section 3.2.8 'form-style parameter expansion'", function() {
         "{?x,y,undef}"       : "?x=1024&y=768",
         "{?var:3}"           : "?var=val",
         "{?list}"            : "?list=red,green,blue",
-        "{?list*}"           : "?list=red&list=green&list=blue",
+        "{?list*}"           : "?red&green&blue",
         "{?keys}"            : "?keys=semi,%3B,dot,.,comma,%2C",
         "{?keys*}"           : "?semi=%3B&dot=.&comma=%2C"
     };
@@ -430,7 +428,7 @@ test("Section 3.2.9 'form-style query continuation'", function() {
         "{&x,y,undef}"       : "&x=1024&y=768",
         "{&var:3}"           : "&var=val",
         "{&list}"            : "&list=red,green,blue",
-        "{&list*}"           : "&list=red&list=green&list=blue",
+        "{&list*}"           : "&red&green&blue",
         "{&keys}"            : "&keys=semi,%3B,dot,.,comma,%2C",
         "{&keys*}"           : "&semi=%3B&dot=.&comma=%2C"
     };
@@ -618,6 +616,23 @@ test("%encoded context names", function() {
     assertSet(testset, context);
 });
 
+
+//TODO: another important change (draft 07) is in the way errors should be handled
+/* extract:
+    If a template processor encounters an error outside of an expression, 
+    such as a character sequence that does not match the <URI-Template> grammar, 
+    then processing of the template SHOULD cease, the URI-reference result SHOULD 
+    contain the expanded part of the template followed by the remainder 
+    unexpanded, and the location and type of error SHOULD be indicated to the 
+    invoking application. If an error is encountered inside an expression, such 
+    as an operator or value modifier that it does not recognize or cannot 
+    support, then the expression SHOULD be copied to the result unexpanded, 
+    processing of the remainder of the template SHOULD continue, and the 
+    location and type of error SHOULD be indicated to the invoking application. 
+    If an error occurs, the result returned might not be a valid URI reference; 
+    it will be an incompletely expanded template string that is only intended 
+    for diagnostic use.
+*/
     });
   </script>  
 </head>

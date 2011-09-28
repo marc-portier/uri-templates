@@ -5,7 +5,7 @@ Distributed under ALPv2
 */
 
 ;
-(function($){
+(function($) {
 
 
 /**
@@ -104,8 +104,11 @@ function addUnNamed(name, key, val) {
     return key + (key.length > 0 ? "=" : "") + val;
 }
 
-function addNamed(name, key, val) {
-    if (!key || key.length === 0) {
+function addNamed(name, key, val, noName) {
+    noName = noName || false;
+    if (noName) { name = ""; }
+    
+    if (!key || key.length === 0)  {
         key = name;
     }
     return key + (key.length > 0 ? "=" : "") + val;
