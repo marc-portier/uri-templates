@@ -70,7 +70,7 @@ function assertSet(set, data) {
     }
 }
 
-module("Samples from Secification (draft 0.6 svn trunk)");
+module("Samples from Secification (draft 0.8)");
 test("Section 1.1 'overview'", function() {
     var context = {"username": "mpo", "term": "dog", "q": "cat", "lang": "en", "query": "mycelium", "number": 100};
     var testset = {
@@ -94,11 +94,9 @@ test("Section 1.2 'levels and expression types' -- Level 1", function() {
 });
 
 test("Section 1.2 'levels and expression types' -- Level 2", function() {
-    var context = {"var": "value", "hello": "Hello World!", "empty": "", "undef": null, "path": "/foo/bar"};
+    var context = {"var": "value", "hello": "Hello World!", "path": "/foo/bar"};
     var testset = {
         "{var}"                 : "value",
-        "O{empty}X"             : "OX",
-        "O{undef}X"             : "OX",
         "{+var}"                : "value",
         "{+hello}"              : "Hello%20World!",
         "{+path}/here"          : "/foo/bar/here",
@@ -107,8 +105,6 @@ test("Section 1.2 'levels and expression types' -- Level 2", function() {
         "X{#hello}"             : "X#Hello%20World!",
         // below from draft-0.5 variant, still valid
         "up{+path}{var}/here"   : "up/foo/barvalue/here",
-        "up{+empty}/here"       : "up/here",
-        "up{+undef}/here"       : "up/here"
     };
     assertSet(testset, context);
 });
@@ -154,7 +150,8 @@ test("Section 1.2 'levels and expression types' -- Level 3", function() {
 
 
 test("Section 1.2 'levels and expression types' -- Level 4", function() {
-    var context = {"var"        : "value", "hello": "Hello World!", 
+    var context = {"var"        : "value", 
+                   "hello"      : "Hello World!", 
                    "path"       : "/foo/bar", 
                    "list"       : [ "red", "green", "blue" ],
                    "keys"       : {"semi": ";", "dot": ".", "comma": ","}};
@@ -194,19 +191,19 @@ test("Section 1.2 'levels and expression types' -- Level 4", function() {
         //Path-style parameters, semicolon-prefixed     (Sec 3.2.7) 
         "{;hello:5}"            : ";hello=Hello",
         "{;list}"               : ";list=red,green,blue",
-        "{;list*}"              : ";red;green;blue",
+        "{;list*}"              : ";list=red;list=green;list=blue",
         "{;keys}"               : ";keys=semi,%3B,dot,.,comma,%2C",
         "{;keys*}"              : ";semi=%3B;dot=.;comma=%2C",
         //Form-style query, ampersand-separated         (Sec 3.2.8) 
         "{?var:3}"              : "?var=val",
         "{?list}"               : "?list=red,green,blue",
-        "{?list*}"              : "?red&green&blue",
+        "{?list*}"              : "?list=red&list=green&list=blue",
         "{?keys}"               : "?keys=semi,%3B,dot,.,comma,%2C",
         "{?keys*}"              : "?semi=%3B&dot=.&comma=%2C",
         //Form-style query continuation                 (Sec 3.2.9) 
         "{&var:3}"              : "&var=val",
         "{&list}"               : "&list=red,green,blue",
-        "{&list*}"              : "&red&green&blue",
+        "{&list*}"              : "&list=red&list=green&list=blue",
         "{&keys}"               : "&keys=semi,%3B,dot,.,comma,%2C",
         "{&keys*}"              : "&semi=%3B&dot=.&comma=%2C"
     };
@@ -228,16 +225,24 @@ test("Section 2.4.1 'prefix values'", function() {
 });
   
 test("Section 2.4.2 'composite values'", function() {
-    var context = {"address": {"city" : "Newport Beach", "state": "CA" }};
+    var context = {
+        "address": {"city" : "Newport Beach", "state": "CA" },
+        "year"   : ["1965", "2000", "2012"],
+        "dom"    : ["example", "com"]
+    };
     var testset = {
-        "/mapper{?address*}"     : "/mapper?city=Newport%20Beach&state=CA"
+        "/mapper{?address*}"     : "/mapper?city=Newport%20Beach&state=CA",
+        "find{?year*}"           : "find?year=1965&year=2000&year=2012",
+        "www{.dom*}"             : "www.example.com"
     };
     
     assertSet(testset, context);
 });
 
 var TESTCONTEXT = {
-    "dom"         : "example.com",
+
+    "count"       : ["one", "two", "three"],
+    "dom"         : ["example", "com"],
     "dub"         : "me/too",
     "hello"       : "Hello World!",
     "half"        : "50%",
@@ -254,6 +259,25 @@ var TESTCONTEXT = {
     "empty_keys"  : [],
     "undef"       : null
 };
+      
+      
+test("Section 3.2.1 'variable expansion'", function() {
+    var context = TESTCONTEXT;
+    var testset = {
+        "{count}"    : "one,two,three",
+        "{count*}"   : "one,two,three",
+        "{/count}"   : "/one,two,three",
+        "{/count*}"  : "/one/two/three",
+        "{;count}"   : ";count=one,two,three",
+        "{;count*}"  : ";count=one;count=two;count=three",
+        "{?count}"   : "?count=one,two,three",
+        "{?count*}"  : "?count=one&count=two&count=three",
+        "{&count*}"  : "&count=one&count=two&count=three"
+    };
+    
+    assertSet(testset, context);
+});
+
       
 test("Section 3.2.2 'simple string expansion'", function() {
     var context = TESTCONTEXT;
@@ -336,7 +360,7 @@ test("Section 3.2.5 'label expansion'", function() {
         "{.who}"             : ".fred",
         "{.who,who}"         : ".fred.fred",
         "{.half,who}"        : ".50%25.fred",
-        "www{.dom}"          : "www.example.com",
+        "www{.dom*}"          : "www.example.com",
         "X{.var}"            : "X.value",
         "X{.empty}"          : "X.",
         "X{.undef}"          : "X",
@@ -399,7 +423,7 @@ test("Section 3.2.7 'path-style parameter expansion'", function() {
 });
 
 
-test("Section 3.2.8 'form-style parameter expansion'", function() {
+test("Section 3.2.8 'form-style query expansion'", function() {
     var context = TESTCONTEXT;
     var testset = {
         "{?who}"             : "?who=fred",
@@ -409,7 +433,7 @@ test("Section 3.2.8 'form-style parameter expansion'", function() {
         "{?x,y,undef}"       : "?x=1024&y=768",
         "{?var:3}"           : "?var=val",
         "{?list}"            : "?list=red,green,blue",
-        "{?list*}"           : "?red&green&blue",
+        "{?list*}"           : "?list=red&list=green&list=blue",
         "{?keys}"            : "?keys=semi,%3B,dot,.,comma,%2C",
         "{?keys*}"           : "?semi=%3B&dot=.&comma=%2C"
     };
@@ -428,7 +452,7 @@ test("Section 3.2.9 'form-style query continuation'", function() {
         "{&x,y,undef}"       : "&x=1024&y=768",
         "{&var:3}"           : "&var=val",
         "{&list}"            : "&list=red,green,blue",
-        "{&list*}"           : "&red&green&blue",
+        "{&list*}"           : "&list=red&list=green&list=blue",
         "{&keys}"            : "&keys=semi,%3B,dot,.,comma,%2C",
         "{&keys*}"           : "&semi=%3B&dot=.&comma=%2C"
     };

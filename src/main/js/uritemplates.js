@@ -1,12 +1,34 @@
 /*
 UriTemplates Draft 0.6  Template Processor
-(c) marc.portier@gmail.com - 2011
+(c) marc.portier@gmail.com - 2011-2012
 Distributed under ALPv2 
 */
 
 ;
-(function($) {
+var uritemplate = (function($) {
 
+// Below are the functions we use from jQuery. 
+// This section ensures the availability of the required functions even if jQuery is not loaded.
+function borrowOrDefine(parent, name, alternative) {
+    if (parent==null || parent[name]==null) {
+        return alternative;
+    }
+    return parent[name];
+}
+var isFunction, isEmptyObject, extend;
+
+isFunction = borrowOrDefine($, 'isFunction', function(fn) {
+        return true; // TODO make own implementation
+});
+
+isEmptyObject = borrowOrDefine($, 'isEmptyObject', function(obj) {
+        return true; // TODO make own implementation
+});
+
+extend = borrowOrDefine($, 'extend', function(base, newprops) {
+        return true; // TODO make own implementation
+});
+// -- end jQuery dependency 
 
 /**
  * Create a runtime cache around retrieved values from the context.
@@ -14,6 +36,7 @@ Distributed under ALPv2
  * occuring expansions within one template.
  * Note: Uses key-value tupples to be able to cache null values as well.
  */
+ //TODO move this into prep-processing
 function CachingContext(context) {
     this.raw = context;
     this.cache = {};
@@ -96,7 +119,7 @@ function encodeNormal(val) {
 //var SELECTEDCHARS_RE = new RegExp("[]","g");
 function encodeReserved(val) {
     //return encodeURI(val).replace(SELECTEDCHARS_RE, function(s) {return escape(s)} );
-    return encodeURI(val); // no need for additional replace is selected-chars is empty
+    return encodeURI(val); // no need for additional replace if selected-chars is empty
 }
 
 
@@ -152,7 +175,7 @@ var labelConf = {
 
 
 function Expression(conf, vars ) {
-    $.extend(this, conf);
+    extend(this, conf);
     this.vars = vars;
 }
 
@@ -302,7 +325,7 @@ function valueProperties(val) {
     if (val !== null && val !== undefined) {
         isArr = (val.constructor === Array);
         isObj = (val.constructor === Object);
-        isUndef = (isArr && val.length === 0) || (isObj && $.isEmptyObject(val));
+        isUndef = (isArr && val.length === 0) || (isObj && isEmptyObject(val));
     } 
     
     return {isArr: isArr, isObj: isObj, isUndef: isUndef};
@@ -415,7 +438,11 @@ var parse = function(str) {
 
 
 
-//------------------------------------- availability in jquery context
-$.extend({"uritemplate": parse});
+//------------------------------------- availability in jquery context if available
+if ($ != null) {
+    $.extend({"uritemplate": parse});
+} 
+
+return parse;
 
 }(jQuery));
