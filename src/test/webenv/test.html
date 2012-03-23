@@ -414,7 +414,7 @@ test("Section 3.2.7 'path-style parameter expansion'", function() {
         "{;x,y,undef}"       : ";x=1024;y=768",
         "{;hello:5}"         : ";hello=Hello",
         "{;list}"            : ";list=red,green,blue",
-        "{;list*}"           : ";red;green;blue",
+        "{;list*}"           : ";list=red;list=green;list=blue",
         "{;keys}"            : ";keys=semi,%3B,dot,.,comma,%2C",
         "{;keys*}"           : ";semi=%3B;dot=.;comma=%2C"        
     };
