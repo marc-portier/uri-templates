@@ -1,0 +1,51 @@
+<html>
+<head>
+  <script src="./js/jquery-1.7.1.min.js"></script>
+  <script type="text/javascript" src="./js/ebnf-jq.js"></script>
+  <script type="text/javascript" src="./js/ebnfdiagram.js"></script>
+
+    <script type="text/javascript">
+    $(document).ready(function(){
+        $("pre.ebnf").ebnfdiagram({'CANVAS':{'height':'*'}});
+    });
+    </script>
+</head>
+<body>
+<h2>uri-templates syntax</h2>
+<pre class="ebnf" >
+
+    "uri-templates syntax (draft 0.8)" {
+     
+      uri-template    = { literals | expression } .
+      
+      expression      =  "{" [ operator ] variable_list "}" .
+      
+      operator        =  op_level2 | op_level3 | op_reserve .
+      
+      op_level2       =  "+" | "#" .
+      
+      op_level3       =  "." | "/" | ";" | "?" | "&" .
+      
+      op_reserve      =  "=" | "," | "!" | "@" | "|" .
+      
+      variable_list   =  varspec { "," varspec } .
+
+      varspec         =  varname [ modifier_level4 ] .
+
+      varname         =  varchar { ["."] varchar } .
+
+      varchar         =  ALPHA | DIGIT | "_" | pct_encoded .
+
+      modifier_level4 =  prefix | explode .
+
+      prefix          = ":" max_length .
+
+      max_length      = DIGIT [ DIGIT  [ DIGIT  [ DIGIT ] ] ] .
+
+      explode         = "*"  .
+
+    } "See http://code.google.com/p/uri-templates/ for updates and work on the spec."
+
+</pre>
+</body>
+</html>
