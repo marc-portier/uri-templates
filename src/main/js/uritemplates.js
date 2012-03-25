@@ -5,30 +5,28 @@ Distributed under ALPv2
 */
 
 ;
-var uritemplate = (function($) {
+var uritemplate = (function() {
 
-// Below are the functions we use from jQuery. 
-// This section ensures the availability of the required functions even if jQuery is not loaded.
-function borrowOrDefine(parent, name, alternative) {
-    if (parent==null || parent[name]==null) {
-        return alternative;
-    }
-    return parent[name];
+// Below are the functions we originally used from jQuery. 
+// The implementations below are often more naive then what is inside jquery, but they suffice for our needs.
+ 
+function isFunction(fn) {
+    return typeof fn == 'function';
 }
-var isFunction, isEmptyObject, extend;
-
-isFunction = borrowOrDefine($, 'isFunction', function(fn) {
-        return true; // TODO make own implementation
-});
-
-isEmptyObject = borrowOrDefine($, 'isEmptyObject', function(obj) {
-        return true; // TODO make own implementation
-});
-
-extend = borrowOrDefine($, 'extend', function(base, newprops) {
-        return true; // TODO make own implementation
-});
-// -- end jQuery dependency 
+ 
+function isEmptyObject (obj) {
+    for(var name in obj){
+        return false;
+    }
+    return true;
+}
+ 
+function extend(base, newprops) {
+    for (var name in newprops) {
+        base[name] = newprops[name];
+    }
+    return base;
+}
 
 /**
  * Create a runtime cache around retrieved values from the context.
@@ -41,12 +39,11 @@ function CachingContext(context) {
     this.raw = context;
     this.cache = {};
 }
-
 CachingContext.prototype.get = function(key) {
     var val = this.lookupRaw(key);
     var result = val;
     
-    if ($.isFunction(val)) { // check function-result-cache
+    if (isFunction(val)) { // check function-result-cache
         var tupple = this.cache[key];
         if (tupple !== null && tupple !== undefined) { 
             result = tupple.val;
@@ -436,13 +433,6 @@ var parse = function(str) {
 
 //TODO: consider building cache of previously parsed uris or even parsed expressions?
 
-
-
-//------------------------------------- availability in jquery context if available
-if ($ != null) {
-    $.extend({"uritemplate": parse});
-} 
-
 return parse;
 
-}(jQuery));
+}());
