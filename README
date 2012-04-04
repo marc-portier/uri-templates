@@ -1,3 +1,8 @@
 Javascript implementation for the URI Templates draft spec maintained at http://code.google.com/p/uri-templates/ 
 
-Available test-report at src/test/webenv/test.html (after checkout)
+steps for testing:
+-----------------
+* checkout from github
+* build with 'make'
+* check test-report at src/test/webenv/test.html
+
