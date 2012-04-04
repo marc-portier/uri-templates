@@ -1,7 +1,7 @@
 /*
-UriTemplates Draft 0.6  Template Processor
+UriTemplates Template Processor - Version: @VERSION - Dated: @DATE
 (c) marc.portier@gmail.com - 2011-2012
-Distributed under ALPv2 
+Licensed under ALPv2 
 */
 
 ;
