@@ -1,7 +1,7 @@
 /*
 UriTemplates Template Processor - Version: @VERSION - Dated: @DATE
 (c) marc.portier@gmail.com - 2011-2012
-Licensed under ALPv2 
+Licensed under APLv2 (http://opensource.org/licenses/Apache-2.0)
 */
 
 ;
