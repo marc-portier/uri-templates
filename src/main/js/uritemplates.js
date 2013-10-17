@@ -94,6 +94,15 @@ UriTemplate.prototype.expand = function(context) {
     return res;
 };
 
+UriTemplate.prototype.refs = function() {
+    var refs = [];
+    var i = 0, cnt = this.set.length;
+    for (i = 0; i<cnt; i++ ) {
+        this.set[i].pushrefs(refs);
+    }
+    return refs;
+}
+
 //TODO: change since draft-0.6 about characters in literals
 /* extract:
 The characters outside of expressions in a URI Template string are intended to be copied literally to the URI-reference if the character is allowed in a URI (reserved / unreserved / pct-encoded) or, if not allowed, copied to the URI-reference in its UTF-8 pct-encoded form.
@@ -105,6 +114,8 @@ function Literal(txt ) {
 Literal.prototype.expand = function() {
     return this.txt;
 };
+
+Literal.prototype.pushrefs = function(refs) {}
 
 
 
@@ -212,7 +223,14 @@ Expression.prototype.expand = function(context) {
     return res;
 };
 
-
+Expression.prototype.pushrefs = function(refs) {
+    var i = 0, cnt = this.vars.length;
+    
+    for (i = 0 ; i< cnt; i++) {
+        var varspec = this.vars[i];
+        refs.push(varspec.name);
+    }
+}
 
 var UNBOUND = {};
 

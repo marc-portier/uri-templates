@@ -6,7 +6,8 @@
        * option straight from source - for debugging
   <script type="text/javascript" src="../../main/js/uritemplates.js"></script>
   -->
-  <!-- * option post build for distro testing - best use 'make watch' to autobuild -->
+  <!-- * option post build for distro testing - best use 'make watch' to autobuild 
+  -->
   <script type="text/javascript" src="../../../build/uritemplates.min.js"></script>
   <!-- end option version to test -->
 
@@ -58,6 +59,29 @@ test("parse templates", function() {
             var errStr = QUnit.jsDump.parse(err);
             ok (false, "error in parsing of '" + tees[i] + "' : " + errStr);
         }
+    }
+});
+
+module("refs collection");
+test("retrieving references", function() {
+    var samples = {
+        "a{x,y}b{z}": ["x", "y", "z"]
+    }
+
+    var cnt = 0;
+    for (pattern in samples) {
+        cnt++;
+    }
+
+    expect(cnt);
+    for (pattern in samples) {
+        var template = $.uritemplate(pattern);
+        var refs = template.refs();
+
+        var expectedRefs = samples[pattern];
+
+        deepEqual(refs, expectedRefs, "refs for pattern: " + pattern);
+        
     }
 });
 
