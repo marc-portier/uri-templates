@@ -82,6 +82,7 @@ CachingContext.lookup = function(me, context, key) {
 
 function UriTemplate(set) {
     this.set = set;
+    this.refnames = null;
 }
 
 UriTemplate.prototype.expand = function(context) {
@@ -94,13 +95,22 @@ UriTemplate.prototype.expand = function(context) {
     return res;
 };
 
+function keys(obj) {
+    var ks = [];
+    for (k in obj) { ks.push(k);}
+    return ks;
+}
+
 UriTemplate.prototype.refs = function() {
-    var refs = [];
-    var i = 0, cnt = this.set.length;
-    for (i = 0; i<cnt; i++ ) {
-        this.set[i].pushrefs(refs);
+    if (!this.refnames) { 
+        var refs = {};
+        var i = 0, cnt = this.set.length;
+        for (i = 0; i<cnt; i++ ) {
+            this.set[i].pushrefs(refs);
+        }
+        this.refnames = keys(refs);
     }
-    return refs;
+    return this.refnames;
 }
 
 //TODO: change since draft-0.6 about characters in literals
@@ -228,7 +238,7 @@ Expression.prototype.pushrefs = function(refs) {
     
     for (i = 0 ; i< cnt; i++) {
         var varspec = this.vars[i];
-        refs.push(varspec.name);
+        refs[varspec.name]=true;
     }
 }
 

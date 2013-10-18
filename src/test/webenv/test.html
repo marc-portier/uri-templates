@@ -62,10 +62,21 @@ test("parse templates", function() {
     }
 });
 
+function equalSet(act, exp, msg) {
+    var l = exp.length;
+    for (var i= 0; i < l; i++) {
+        if (act.indexOf(exp[i]) <0)
+            ok (false, msg + " - actual set does not contain expected value: " + exp[i]);
+    }
+    equal(act.length, l, msg + " - set lengths don't match");
+}
+
+
 module("refs collection");
 test("retrieving references", function() {
     var samples = {
-        "a{x,y}b{z}": ["x", "y", "z"]
+        "a{x,y}b{z}": ["x", "y", "z"],
+        "a{x,y}b{x}": ["x", "y"]
     }
 
     var cnt = 0;
@@ -80,7 +91,7 @@ test("retrieving references", function() {
 
         var expectedRefs = samples[pattern];
 
-        deepEqual(refs, expectedRefs, "refs for pattern: " + pattern);
+        equalSet(refs, expectedRefs, "refs for pattern: " + pattern);
         
     }
 });
