@@ -95,12 +95,6 @@ UriTemplate.prototype.expand = function(context) {
     return res;
 };
 
-function keys(obj) {
-    var ks = [];
-    for (k in obj) { ks.push(k);}
-    return ks;
-}
-
 UriTemplate.prototype.refs = function() {
     if (!this.refnames) { 
         var refs = {};
@@ -108,7 +102,7 @@ UriTemplate.prototype.refs = function() {
         for (i = 0; i<cnt; i++ ) {
             this.set[i].pushrefs(refs);
         }
-        this.refnames = keys(refs);
+        this.refnames = Object.keys(refs);
     }
     return this.refnames;
 }
